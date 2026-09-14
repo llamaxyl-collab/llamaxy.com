@@ -108,7 +108,7 @@ def page(title, active, body, desc):
 <div><b>{CO['name']}</b><br>Registered in England &amp; Wales<br>Company No. {CO['crn']}<br>VAT No. {CO['vat']}</div>
 <div><b>Address</b><br>{esc(CO['address'])}</div>
 <div><b>Contact</b><br><a href="mailto:{CO['email']}">{CO['email']}</a><br>{CO['phone']}</div>
-</div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}. This website is for information only — no products are sold and no personal data is collected on this site.</div></footer>
+</div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}.</div></footer>
 </body></html>"""
 
 
@@ -165,7 +165,6 @@ def build():
     opts_b = "".join(f'<option>{esc(b)}</option>' for b in sorted(brands, key=str.lower))
     prod = f"""<section><div class="wrap">
 <h2>Our product range</h2><p class="sub">Products currently listed for sale on Amazon.co.uk. Updated {DATA['updated']}.</p>
-<div class="note">This is a catalogue for information purposes only. Products cannot be purchased on this website.</div>
 <div class="filters"><input id="q" type="search" placeholder="Search product, brand or ASIN">
 <select id="c"><option value="">All categories</option>{opts_c}</select>
 <select id="b"><option value="">All brands</option>{opts_b}</select></div>
