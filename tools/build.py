@@ -12,7 +12,6 @@ DATA = json.loads((ROOT / "data/products.json").read_text())
 CO = {
     "name": "Llamaxy Limited",
     "email": "info@llamaxy.com",
-    "phone": "+44 7399 150 292",
     "address": "122 Hawkins Road, Cambridge, CB4 2RD, United Kingdom",
     "crn": "13143085",
     "vat": "GB435877456",
@@ -106,8 +105,8 @@ def page(title, active, body, desc):
 {body}
 <footer><div class="wrap">
 <div><b>{CO['name']}</b><br>Registered in England &amp; Wales<br>Company No. {CO['crn']}<br>VAT No. {CO['vat']}</div>
-<div><b>Address</b><br>{esc(CO['address'])}</div>
-<div><b>Contact</b><br><a href="mailto:{CO['email']}">{CO['email']}</a><br>{CO['phone']}</div>
+<div><b>Office address</b><br>{esc(CO['address'])}</div>
+<div><b>Contact</b><br><a href="mailto:{CO['email']}">{CO['email']}</a></div>
 </div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}.</div></footer>
 </body></html>"""
 
@@ -204,9 +203,9 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
     contact = f"""<section><div class="wrap">
 <h2>Contact</h2><p class="sub">Wholesalers, distributors and brands — we'd be glad to hear from you.</p>
 <div class="cols">
-<div class="box"><h3>Trade enquiries</h3><p>Email: <a href="mailto:{CO['email']}">{CO['email']}</a><br>Phone: <a href="tel:{CO['phone'].replace(' ', '')}">{CO['phone']}</a></p>
+<div class="box"><h3>Trade enquiries</h3><p>Email: <a href="mailto:{CO['email']}">{CO['email']}</a></p>
 <p style="margin-top:12px">Please include your company name, brands/price list and minimum order requirements. We reply within one business day.</p></div>
-<div class="box"><h3>Address</h3><p>{CO['name']}<br>{esc(CO['address']).replace(', ', '<br>')}</p></div>
+<div class="box"><h3>Office address</h3><p>{CO['name']}<br>{esc(CO['address']).replace(', ', '<br>')}</p></div>
 <div class="box"><h3>Consumers</h3><p>For orders placed on Amazon, please contact us through your Amazon account (Your Orders → Contact seller).</p></div>
 </div></div></section>"""
     (SITE / "contact.html").write_text(page(f"Contact — {CO['name']}", "contact.html", contact,
