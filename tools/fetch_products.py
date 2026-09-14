@@ -87,6 +87,10 @@ def main():
     print(f"{len(rows)} satir, {len(asins)} benzersiz aktif ASIN")
     items = [v for v in catalog(asins).values() if v["title"] and v["image"]]
     items.sort(key=lambda x: (x["brand"].lower(), x["title"].lower()))
+    if OUT.exists():
+        prev = len(json.loads(OUT.read_text())["products"])
+        if len(items) < prev * 0.5:
+            sys.exit(f"Urun sayisi {prev} -> {len(items)} dustu; API hatasi olabilir, yayinlanmadi.")
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps({"updated": time.strftime("%Y-%m-%d"), "products": items},
                               ensure_ascii=False, indent=1))
