@@ -113,10 +113,10 @@ def page(title, active, body, desc):
 
 
 def card(p):
-    return (f'<div class="card" data-c="{esc(p["cat"])}" data-b="{esc(p["brand"])}" data-s="{esc((p["title"] + " " + p["brand"] + " " + p["asin"]).lower())}">'
+    return (f'<div class="card" data-c="{esc(p["cat"])}" data-b="{esc(p["brand"])}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">'
             f'<div class="img"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></div>'
             f'<div class="t"><div class="b">{esc(p["brand"])}</div><div class="n">{esc(p["title"])}</div>'
-            f'<div class="a">ASIN {p["asin"]}</div></div></div>')
+            '</div></div>')
 
 
 def build():
@@ -165,7 +165,7 @@ def build():
     opts_b = "".join(f'<option>{esc(b)}</option>' for b in sorted(brands, key=str.lower))
     prod = f"""<section><div class="wrap">
 <h2>Our product range</h2><p class="sub">Products currently listed for sale on Amazon.co.uk. Updated {DATA['updated']}.</p>
-<div class="filters"><input id="q" type="search" placeholder="Search product, brand or ASIN">
+<div class="filters"><input id="q" type="search" placeholder="Search product or brand">
 <select id="c"><option value="">All categories</option>{opts_c}</select>
 <select id="b"><option value="">All brands</option>{opts_b}</select></div>
 <div class="count" id="cnt"></div>
