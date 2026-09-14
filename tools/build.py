@@ -11,7 +11,7 @@ DATA = json.loads((ROOT / "data/products.json").read_text())
 
 CO = {
     "name": "Llamaxy Limited",
-    "email": "abdullah@llamaxy.com",
+    "email": "info@llamaxy.com",
     "phone": "+44 7399 150 292",
     "address": "122 Hawkins Road, Cambridge, CB4 2RD, United Kingdom",
     "crn": "13143085",
