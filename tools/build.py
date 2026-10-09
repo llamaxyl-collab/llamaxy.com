@@ -107,7 +107,7 @@ def page(title, active, body, desc):
 <div><b>{CO['name']}</b><br>Registered in England &amp; Wales<br>Company No. {CO['crn']}<br>VAT No. {CO['vat']}</div>
 <div><b>Office address</b><br>{esc(CO['address'])}</div>
 <div><b>Contact</b><br><a href="mailto:{CO['email']}">{CO['email']}</a></div>
-</div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}.</div></footer>
+</div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}. · <a href="privacy.html">Privacy</a></div></footer>
 </body></html>"""
 
 
@@ -210,6 +210,18 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 </div></div></section>"""
     (SITE / "contact.html").write_text(page(f"Contact — {CO['name']}", "contact.html", contact,
                                              "Contact Llamaxy Limited for trade enquiries."))
+    privacy = f"""<section><div class="wrap">
+<h2>Privacy policy</h2><p class="sub">Last updated: 9 October 2026</p>
+<div class="box">
+<h3>Who we are</h3><p>{CO['name']}, {esc(CO['address'])}. Contact: <a href="mailto:{CO['email']}">{CO['email']}</a>.</p>
+<h3 style="margin-top:16px">This website</h3><p>This website does not use cookies, analytics or contact forms and does not collect personal data from visitors.</p>
+<h3 style="margin-top:16px">Our internal tools and Google data</h3><p>We run a private, internal business tool used only by our own staff. With the account owner's consent it reads our own company Gmail mailboxes (Google OAuth) to find supplier invoices, delivery updates and replies to our business emails. This data is used only for running our own business, is stored on our own secured server, is never sold or shared with third parties, and is not used for advertising or to train AI models. Access can be revoked at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+<p style="margin-top:12px">Our use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+<h3 style="margin-top:16px">Customers</h3><p>Orders placed on Amazon are handled under Amazon's privacy notice. We only use order details to fulfil and support those orders.</p>
+<h3 style="margin-top:16px">Your rights</h3><p>Under UK GDPR you can ask what data we hold about you, ask us to correct or delete it, or complain to the ICO (ico.org.uk). Email us at {CO['email']}.</p>
+</div></div></section>"""
+    (SITE / "privacy.html").write_text(page(f"Privacy — {CO['name']}", "privacy.html", privacy,
+                                             "Privacy policy of Llamaxy Limited."))
     print(f"site/ olusturuldu: {n} urun, {len(brands)} marka")
 
 
