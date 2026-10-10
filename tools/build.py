@@ -12,6 +12,7 @@ DATA = json.loads((ROOT / "data/products.json").read_text())
 CO = {
     "name": "Llamaxy Limited",
     "email": "info@llamaxy.com",
+    "trade": "trade@llamaxy.com",
     "address": "122 Hawkins Road, Cambridge, CB4 2RD, United Kingdom",
     "crn": "13143085",
     "vat": "GB435877456",
@@ -37,7 +38,13 @@ cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
 products.sort(key=lambda p: (p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
 brands = Counter(p["brand"] for p in products if p["brand"])
-top_brands = [b for b, n in brands.most_common(40) if b.upper() != "LLAMAXY" and n >= 3][:24]
+# Ana sayfada sadece tanınan oyuncak/koleksiyon markaları (rastgele ev/giyim markaları güven vermiyor)
+SHOW_BRANDS = ["Squishmallows", "Schleich", "Funko", "Mattel", "Hasbro", "Hot Wheels", "Barbie", "Nerf",
+               "Transformers", "Star Wars", "Masters of the Universe", "Miraculous", "Jazwares", "Jurassic World",
+               "Polly Pocket", "Disney", "Marvel", "Playmobil", "Ravensburger", "Simba", "Bizak", "Geomag",
+               "Yu-Gi-Oh!", "BANDAI", "Mini Brands", "My Little Pony", "Weta Workshop", "Just Play"]
+toy_brands = Counter(p["brand"] for p in products if p["cat"] == "Toys & Games" and p["brand"])
+top_brands = [b for b in SHOW_BRANDS if toy_brands.get(b)]
 
 CSS = """
 :root{--ink:#14213d;--muted:#5b6475;--line:#e3e6ec;--bg:#f7f8fa;--card:#fff;--accent:#e07a1f;--accent-d:#b8600f}
@@ -94,7 +101,7 @@ footer a{color:#fff}
 
 
 def page(title, active, body, desc):
-    links = [("index.html", "Home"), ("products.html", "Products"), ("about.html", "Company"), ("contact.html", "Contact")]
+    links = [("index.html", "Home"), ("products.html", "Products"), ("suppliers.html", "For suppliers"), ("about.html", "Company"), ("contact.html", "Contact")]
     nav = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{t}</a>' for h, t in links)
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -106,7 +113,7 @@ def page(title, active, body, desc):
 <footer><div class="wrap">
 <div><b>{CO['name']}</b><br>Registered in England &amp; Wales<br>Company No. {CO['crn']}<br>VAT No. {CO['vat']}</div>
 <div><b>Office address</b><br>{esc(CO['address'])}</div>
-<div><b>Contact</b><br><a href="mailto:{CO['email']}">{CO['email']}</a></div>
+<div><b>Contact</b><br>Trade: <a href="mailto:{CO['trade']}">{CO['trade']}</a><br><a href="mailto:{CO['email']}">{CO['email']}</a></div>
 </div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}. · <a href="privacy.html">Privacy</a></div></footer>
 </body></html>"""
 
@@ -130,22 +137,22 @@ def build():
     featured = [p for p in products if p["cat"] == "Toys & Games"][::max(1, cats["Toys & Games"] // 10)][:10]
     home = f"""
 <div class="hero"><div class="wrap">
-<h1>UK online retailer of toys, collectibles and branded consumer goods</h1>
-<p>{CO['name']} is a Cambridge-based company selling genuine branded products to UK consumers through Amazon, fulfilled by Amazon (FBA). We work with authorised distributors and wholesalers across the UK and Europe.</p>
-<a class="btn" href="products.html">View our range</a><a class="btn ghost" href="contact.html">Trade enquiries</a>
+<h1>UK importer and retailer of branded toys, games and collectibles</h1>
+<p>{CO['name']} is a VAT-registered company in Cambridge. We buy genuine branded stock from authorised distributors across Europe, import it into the United Kingdom under our own EORI number and sell it to consumers in the UK.</p>
+<a class="btn" href="suppliers.html">For suppliers</a><a class="btn ghost" href="products.html">View our range</a>
 </div></div>
 <div class="wrap"><div class="stats">
 <div class="stat"><b>{n}+</b><span>Products currently listed</span></div>
 <div class="stat"><b>{len(brands)}</b><span>Brands in our catalogue</span></div>
-<div class="stat"><b>Amazon UK</b><span>Main sales channel (FBA)</span></div>
+<div class="stat"><b>UK only</b><span>We sell to UK end consumers</span></div>
 <div class="stat"><b>Since 2021</b><span>UK limited company</span></div>
 </div></div>
 <section><div class="wrap">
-<h2>What we do</h2><p class="sub">We buy from authorised sources and sell to end consumers online.</p>
+<h2>What we do</h2><p class="sub">We buy from authorised sources and sell to end consumers in the UK.</p>
 <div class="cols">
-<div class="box"><h3>Wholesale purchasing</h3><p>We source genuine, brand-new stock from distributors and wholesalers in the UK and EU, paying by bank transfer against invoice.</p></div>
-<div class="box"><h3>Marketplace retail</h3><p>Products are listed on Amazon.co.uk and stored and shipped from Amazon fulfilment centres, with Amazon customer service and returns.</p></div>
-<div class="box"><h3>Brand-safe selling</h3><p>We only sell new, original products with correct EAN/barcodes, respect manufacturer pricing policies and comply with UK product safety rules.</p></div>
+<div class="box"><h3>Import &amp; purchasing</h3><p>We buy brand-new stock from authorised distributors in the EU and UK in carton and pallet quantities, pay by bank transfer and arrange collection, freight and UK customs clearance ourselves.</p></div>
+<div class="box"><h3>UK retail</h3><p>We sell to consumers across the United Kingdom through established online retail channels, led by Amazon.co.uk with stock held in UK fulfilment centres for fast delivery and full customer service.</p></div>
+<div class="box"><h3>Brand-safe selling</h3><p>Only new, original products with correct EAN barcodes. We follow manufacturer pricing and brand guidelines, never resell to other traders and comply with UK product safety rules.</p></div>
 </div></div></section>
 <section style="background:#fff;border-block:1px solid var(--line)"><div class="wrap">
 <h2>Brands we carry</h2><p class="sub">A selection of brands currently in our catalogue.</p>
@@ -157,8 +164,42 @@ def build():
 <h2 style="margin-top:48px">Selected products</h2><p class="sub"><a href="products.html">See all {n} products →</a></p>
 <div class="grid">{''.join(card(p) for p in featured)}</div>
 </div></section>"""
-    (SITE / "index.html").write_text(page(f"{CO['name']} — UK Online Retailer", "index.html", home,
-                                          "Llamaxy Limited is a UK online retailer of toys and branded consumer goods selling on Amazon UK."))
+    sup = f"""<div class="hero"><div class="wrap">
+<h1>Working with {CO['name']}</h1>
+<p>Information for distributors, wholesalers and brand owners who are considering opening a trade account for us.</p>
+<a class="btn" href="mailto:{CO['trade']}">{CO['trade']}</a>
+</div></div>
+<section><div class="wrap">
+<h2>How we buy</h2><p class="sub">Simple, predictable orders from a UK business customer.</p>
+<div class="cols">
+<div class="box"><h3>Orders</h3><p>Regular orders in full cartons and pallets. We are happy to meet your minimum order value and to start with a smaller first order.</p></div>
+<div class="box"><h3>Payment</h3><p>Pro-forma payment by bank transfer (EUR or GBP) before dispatch. Credit terms only if you offer them later.</p></div>
+<div class="box"><h3>Logistics</h3><p>We can collect from your warehouse (EXW/FCA) with our own freight partners, or use your carrier. We handle UK import, customs and VAT under our EORI number.</p></div>
+</div></div></section>
+<section style="background:#fff;border-block:1px solid var(--line)"><div class="wrap">
+<h2>Our commitments to brands and distributors</h2><p class="sub">Why distributors can trust us with their brands.</p>
+<div class="cols">
+<div class="box"><h3>UK end consumers only</h3><p>Stock bought from you is sold only to consumers in the United Kingdom. We do not resell to other traders and do not ship back into your territory.</p></div>
+<div class="box"><h3>Pricing &amp; brand rules</h3><p>We respect recommended and minimum advertised prices and the brand owner's listing and image guidelines.</p></div>
+<div class="box"><h3>Compliance</h3><p>UK product safety, labelling and UK importer requirements are met for every product we sell. Documentation is kept for every shipment.</p></div>
+</div></div></section>
+<section><div class="wrap">
+<h2>Company details for your account form</h2><p class="sub">Full details are on our <a href="about.html">company page</a>. Trade references and bank details are available on request.</p>
+<div class="cols">
+<div class="box"><dl class="facts">
+<dt>Legal name</dt><dd>{CO['name']}</dd>
+<dt>Company number</dt><dd>{CO['crn']} (England &amp; Wales)</dd>
+<dt>VAT number</dt><dd>{CO['vat']}</dd>
+<dt>EORI number</dt><dd>{CO['eori']}</dd>
+<dt>Purchasing</dt><dd><a href="mailto:{CO['trade']}">{CO['trade']}</a></dd>
+</dl></div>
+<div class="box"><h3>What we are looking for</h3><p>Licensed and branded toys, games, plush, trading cards and collectibles. If you are an official distributor for brands in our range, or for brands we do not yet carry, we would like to hear from you.</p></div>
+</div></div></section>"""
+    (SITE / "suppliers.html").write_text(page(f"For suppliers — {CO['name']}", "suppliers.html", sup,
+                                               "Trade account information for distributors and wholesalers supplying Llamaxy Limited."))
+
+    (SITE / "index.html").write_text(page(f"{CO['name']} — UK Importer & Retailer of Toys", "index.html", home,
+                                          "Llamaxy Limited is a UK importer and retailer of branded toys, games and collectibles."))
 
     opts_c = "".join(f'<option>{esc(c)}</option>' for c, _ in cats.most_common())
     opts_b = "".join(f'<option>{esc(b)}</option>' for b in sorted(brands, key=str.lower))
@@ -193,8 +234,8 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <h2>Company information</h2><p class="sub">Official details of {CO['name']}.</p>
 <div class="cols">
 <div class="box">{facts}</div>
-<div class="box"><h3>About us</h3><p>{CO['name']} is an independent UK retailer based in Cambridge. We specialise in toys, games and collectibles, alongside a smaller range of home, electronics and sports products.</p>
-<p style="margin-top:12px">Our products are sold to consumers across the United Kingdom via Amazon.co.uk and fulfilled by Amazon. We are VAT registered and hold an EORI number for importing goods from the European Union.</p>
+<div class="box"><h3>About us</h3><p>{CO['name']} is an independent UK importer and retailer based in Cambridge, trading since 2021. We specialise in branded toys, games and collectibles.</p>
+<p style="margin-top:12px">We sell to consumers across the United Kingdom, mainly through Amazon.co.uk with stock held in UK fulfilment centres. We are VAT registered and hold an EORI number for importing goods from the European Union. See <a href="suppliers.html">For suppliers</a> for how we work with distributors.</p>
 <p style="margin-top:12px">We are always interested in building long-term relationships with authorised distributors, wholesalers and brand owners.</p></div>
 </div></div></section>"""
     (SITE / "about.html").write_text(page(f"Company — {CO['name']}", "about.html", about,
@@ -203,7 +244,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
     contact = f"""<section><div class="wrap">
 <h2>Contact</h2><p class="sub">Wholesalers, distributors and brands — we'd be glad to hear from you.</p>
 <div class="cols">
-<div class="box"><h3>Trade enquiries</h3><p>Email: <a href="mailto:{CO['email']}">{CO['email']}</a></p>
+<div class="box"><h3>Trade enquiries</h3><p>Purchasing: <a href="mailto:{CO['trade']}">{CO['trade']}</a></p><p>General: <a href="mailto:{CO['email']}">{CO['email']}</a></p>
 <p style="margin-top:12px">Please include your company name, brands/price list and minimum order requirements. We reply within one business day.</p></div>
 <div class="box"><h3>Office address</h3><p>{CO['name']}<br>{esc(CO['address']).replace(', ', '<br>')}</p></div>
 <div class="box"><h3>Consumers</h3><p>For orders placed on Amazon, please contact us through your Amazon account (Your Orders → Contact seller).</p></div>
