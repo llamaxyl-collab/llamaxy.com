@@ -34,6 +34,8 @@ esc = html.escape
 products = DATA["products"]
 for p in products:
     p["cat"] = CAT.get(p["category"], "Other")
+# Sitede sadece oyuncaklar (Apo 10 Eki 2026)
+products = [p for p in products if p["cat"] == "Toys & Games"]
 cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
 products.sort(key=lambda p: (p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
@@ -47,6 +49,8 @@ toy_brands = Counter(p["brand"] for p in products if p["cat"] == "Toys & Games" 
 top_brands = [b for b in SHOW_BRANDS if toy_brands.get(b)]
 
 CSS = """
+.buy{display:block;margin-top:10px;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;border-radius:8px;padding:7px 0}
+.buy:hover{background:var(--accent-d)}
 :root{--ink:#14213d;--muted:#5b6475;--line:#e3e6ec;--bg:#f7f8fa;--card:#fff;--accent:#e07a1f;--accent-d:#b8600f}
 *{box-sizing:border-box}
 body{margin:0;display:flex;flex-direction:column;min-height:100vh;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
@@ -122,6 +126,7 @@ def card(p):
     return (f'<div class="card" data-c="{esc(p["cat"])}" data-b="{esc(p["brand"])}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">'
             f'<div class="img"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></div>'
             f'<div class="t"><div class="b">{esc(p["brand"])}</div><div class="n">{esc(p["title"])}</div>'
+            f'<a class="buy" href="https://www.amazon.co.uk/dp/{esc(p["asin"])}?m=A2RPHAYSIURSVS" rel="noopener" target="_blank">Buy</a>'
             '</div></div>')
 
 
@@ -151,7 +156,7 @@ def build():
 <h2>What we do</h2><p class="sub">We buy from authorised sources and sell to end consumers in the UK.</p>
 <div class="cols">
 <div class="box"><h3>Import &amp; purchasing</h3><p>We buy brand-new stock from authorised distributors in the EU and UK in carton and pallet quantities, pay by bank transfer and arrange collection, freight and UK customs clearance ourselves.</p></div>
-<div class="box"><h3>UK retail</h3><p>We sell to consumers across the United Kingdom through established online retail channels, led by Amazon.co.uk with stock held in UK fulfilment centres for fast delivery and full customer service.</p></div>
+<div class="box"><h3>UK retail</h3><p>We sell online to consumers across the United Kingdom, with stock held in UK fulfilment centres for fast delivery and full customer service.</p></div>
 <div class="box"><h3>Brand-safe selling</h3><p>Only new, original products with correct EAN barcodes. We follow manufacturer pricing and brand guidelines, never resell to other traders and comply with UK product safety rules.</p></div>
 </div></div></section>
 <section style="background:#fff;border-block:1px solid var(--line)"><div class="wrap">
@@ -159,7 +164,7 @@ def build():
 <div class="chips">{''.join(f'<span class="chip">{esc(b)}</span>' for b in top_brands)}</div>
 </div></section>
 <section><div class="wrap">
-<h2>Categories</h2><p class="sub">Our main focus is toys &amp; games.</p>
+<h2>Categories</h2><p class="sub">Toys, games and collectibles.</p>
 <div class="chips">{''.join(f'<a class="chip" style="text-decoration:none" href="products.html#{esc(c)}">{esc(c)} · {k}</a>' for c, k in cats.most_common() if c != "Other")}</div>
 <h2 style="margin-top:48px">Selected products</h2><p class="sub"><a href="products.html">See all {n} products →</a></p>
 <div class="grid">{''.join(card(p) for p in featured)}</div>
@@ -204,7 +209,7 @@ def build():
     opts_c = "".join(f'<option>{esc(c)}</option>' for c, _ in cats.most_common())
     opts_b = "".join(f'<option>{esc(b)}</option>' for b in sorted(brands, key=str.lower))
     prod = f"""<section><div class="wrap">
-<h2>Our product range</h2><p class="sub">Products currently listed for sale on Amazon.co.uk. Updated {DATA['updated']}.</p>
+<h2>Our product range</h2><p class="sub">Toys, games and collectibles currently in stock. Updated {DATA['updated']}.</p>
 <div class="filters"><input id="q" type="search" placeholder="Search product or brand">
 <select id="c"><option value="">All categories</option>{opts_c}</select>
 <select id="b"><option value="">All brands</option>{opts_b}</select></div>
@@ -235,7 +240,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <div class="cols">
 <div class="box">{facts}</div>
 <div class="box"><h3>About us</h3><p>{CO['name']} is an independent UK importer and retailer based in Cambridge, trading since 2021. We specialise in branded toys, games and collectibles.</p>
-<p style="margin-top:12px">We sell to consumers across the United Kingdom, mainly through Amazon.co.uk with stock held in UK fulfilment centres. We are VAT registered and hold an EORI number for importing goods from the European Union. See <a href="suppliers.html">For suppliers</a> for how we work with distributors.</p>
+<p style="margin-top:12px">We sell online to consumers across the United Kingdom, with stock held in UK fulfilment centres. We are VAT registered and hold an EORI number for importing goods from the European Union. See <a href="suppliers.html">For suppliers</a> for how we work with distributors.</p>
 <p style="margin-top:12px">We are always interested in building long-term relationships with authorised distributors, wholesalers and brand owners.</p></div>
 </div></div></section>"""
     (SITE / "about.html").write_text(page(f"Company — {CO['name']}", "about.html", about,
@@ -247,7 +252,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <div class="box"><h3>Trade enquiries</h3><p>Purchasing: <a href="mailto:{CO['trade']}">{CO['trade']}</a></p><p>General: <a href="mailto:{CO['email']}">{CO['email']}</a></p>
 <p style="margin-top:12px">Please include your company name, brands/price list and minimum order requirements. We reply within one business day.</p></div>
 <div class="box"><h3>Office address</h3><p>{CO['name']}<br>{esc(CO['address']).replace(', ', '<br>')}</p></div>
-<div class="box"><h3>Consumers</h3><p>For orders placed on Amazon, please contact us through your Amazon account (Your Orders → Contact seller).</p></div>
+<div class="box"><h3>Customers</h3><p>For an existing order, please contact us through the platform you ordered on (Your Orders → Contact seller).</p></div>
 </div></div></section>"""
     (SITE / "contact.html").write_text(page(f"Contact — {CO['name']}", "contact.html", contact,
                                              "Contact Llamaxy Limited for trade enquiries."))
@@ -258,7 +263,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <h3 style="margin-top:16px">This website</h3><p>This website does not use cookies, analytics or contact forms and does not collect personal data from visitors.</p>
 <h3 style="margin-top:16px">Our internal tools and Google data</h3><p>We run a private, internal business tool used only by our own staff. With the account owner's consent it reads our own company Gmail mailboxes (Google OAuth) to find supplier invoices, delivery updates and replies to our business emails. This data is used only for running our own business, is stored on our own secured server, is never sold or shared with third parties, and is not used for advertising or to train AI models. Access can be revoked at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
 <p style="margin-top:12px">Our use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
-<h3 style="margin-top:16px">Customers</h3><p>Orders placed on Amazon are handled under Amazon's privacy notice. We only use order details to fulfil and support those orders.</p>
+<h3 style="margin-top:16px">Customers</h3><p>Orders are handled under the privacy notice of the platform the order was placed on. We only use order details to fulfil and support those orders.</p>
 <h3 style="margin-top:16px">Your rights</h3><p>Under UK GDPR you can ask what data we hold about you, ask us to correct or delete it, or complain to the ICO (ico.org.uk). Email us at {CO['email']}.</p>
 </div></div></section>"""
     (SITE / "privacy.html").write_text(page(f"Privacy — {CO['name']}", "privacy.html", privacy,
