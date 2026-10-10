@@ -1,9 +1,11 @@
 
+.buy{display:block;margin-top:10px;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;border-radius:8px;padding:7px 0}
+.buy:hover{background:var(--accent-d)}
 :root{--ink:#14213d;--muted:#5b6475;--line:#e3e6ec;--bg:#f7f8fa;--card:#fff;--accent:#e07a1f;--accent-d:#b8600f}
 *{box-sizing:border-box}
 body{margin:0;display:flex;flex-direction:column;min-height:100vh;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
 a{color:inherit}
-.wrap{max-width:1160px;margin:0 auto;padding-inline:20px}
+.wrap{width:100%;max-width:1160px;margin:0 auto;padding-inline:20px}
 header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
 header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;flex-wrap:wrap}
 .logo{font-weight:800;font-size:22px;letter-spacing:-.02em;text-decoration:none}
