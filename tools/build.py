@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
+PREVIEW = (ROOT / "data/preview-dir").read_text().strip()  # gizli test vitrini, ör. preview-3f9a… (4 Kas 2026)
 DATA = json.loads((ROOT / "data/products.json").read_text())
 
 CO = {
@@ -207,7 +208,7 @@ def page(title, active, body, desc):
 {body}
 <footer><div class="wrap">
 <div><b>Shop</b><a href="products.html">All toys</a>{"".join(f'<a href="products.html#t={esc(n)}">{esc(n)}</a>' for n, _, _ in TYPES[:4])}</div>
-<div><b>Help</b><a href="help.html">Delivery &amp; returns</a><a href="contact.html">Contact us</a><a href="basket.html">Your basket</a></div>
+<div><b>Help</b><a href="help.html">Delivery &amp; returns</a><a href="terms.html">Terms of sale</a><a href="contact.html">Contact us</a><a href="basket.html">Your basket</a></div>
 <div><b>About Llamaxy</b><a href="about.html">Our company</a><a href="suppliers.html">Trade &amp; suppliers</a><a href="privacy.html">Privacy</a></div>
 <div><b>Questions?</b>We're happy to help.<a href="mailto:{CO['email']}">{CO['email']}</a></div>
 <span class="legal" style="grid-column:1/-1">© {DATA['updated'][:4]} {CO['name']} · Registered in England &amp; Wales No. {CO['crn']} · VAT {CO['vat']} · {esc(CO['address'])}</span>
@@ -379,10 +380,10 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <h2>Privacy policy</h2><p class="sub">Last updated: 9 October 2026</p>
 <div class="box">
 <h3>Who we are</h3><p>{CO['name']}, {esc(CO['address'])}. Contact: <a href="mailto:{CO['email']}">{CO['email']}</a>.</p>
-<h3 style="margin-top:16px">This website</h3><p>This website does not use cookies or analytics. Your basket and the delivery details you type at checkout are kept only in your own browser and are not sent to us unless an order is completed.</p>
+<h3 style="margin-top:16px">This website</h3><p>This website does not use cookies or analytics. Your basket is kept only in your own browser. Card payments are taken by Stripe on its secure page; we never see your card details.</p>
 <h3 style="margin-top:16px">Our internal tools and Google data</h3><p>We run a private, internal business tool used only by our own staff. With the account owner's consent it reads our own company Gmail mailboxes (Google OAuth) to find supplier invoices, delivery updates and replies to our business emails. This data is used only for running our own business, is stored on our own secured server, is never sold or shared with third parties, and is not used for advertising or to train AI models. Access can be revoked at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
 <p style="margin-top:12px">Our use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
-<h3 style="margin-top:16px">Customers</h3><p>Orders are handled under the privacy notice of the platform the order was placed on. We only use order details to fulfil and support those orders.</p>
+<h3 style="margin-top:16px">Customers</h3><p>When you order on this website we receive your name, email, phone number and delivery address from the payment page. We use them only to deliver your order, send you order and tracking emails and handle returns; our UK fulfilment partner receives your name, address and phone number to deliver the parcel. Order records are kept for 6 years for tax purposes.</p>
 <h3 style="margin-top:16px">Your rights</h3><p>Under UK GDPR you can ask what data we hold about you, ask us to correct or delete it, or complain to the ICO (ico.org.uk). Email us at {CO['email']}.</p>
 </div></div></section>"""
     (SITE / "privacy.html").write_text(page(f"Privacy — {CO['name']}", "privacy.html", privacy,
@@ -395,13 +396,8 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
     checkout = f"""<section><div class="wrap" style="max-width:760px">
 <h2>Checkout</h2>{nostock}
 <div class="box"><form class="co" id="co">
-<label class="w">Email<input type="email" required autocomplete="email"></label>
-<label>First name<input required autocomplete="given-name"></label><label>Last name<input required autocomplete="family-name"></label>
-<label class="w">Address<input required autocomplete="address-line1"></label>
-<label class="w">Address line 2 (optional)<input autocomplete="address-line2"></label>
-<label>Town / city<input required autocomplete="address-level2"></label><label>Postcode<input required autocomplete="postal-code" pattern="[A-Za-z]{{1,2}}[0-9][0-9A-Za-z]? ?[0-9][A-Za-z]{{2}}" title="UK postcode"></label>
-<label>Phone<input type="tel" required autocomplete="tel"></label><label>Country<select><option>United Kingdom</option></select></label>
 <div class="w" style="grid-column:1/-1"><div id="osum"></div></div>
+<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">You will enter your email and delivery address on the next, secure payment page (Stripe). By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
 <button class="btn" style="grid-column:1/-1;border:0;font:inherit;font-weight:600;cursor:pointer" id="pay">Continue to secure payment</button>
 </form><div id="perr"></div></div></div></section>"""
     (SITE / "checkout.html").write_text(page(f"Checkout — {CO['name']}", "checkout.html", checkout, "Checkout."))
@@ -414,6 +410,32 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <div class="box"><h3>🔒 Payment</h3><p>Payments are handled by a secure card payment provider. We never see or store your card details. Prices include VAT.</p></div>
 </div></div></section>"""
     (SITE / "help.html").write_text(page(f"Delivery & returns — Llamaxy", "help.html", help_, "Delivery and returns information."))
+    terms = f"""<section><div class="wrap" style="max-width:860px">
+<h2>Terms of sale</h2><p class="sub">Last updated: 4 November 2026</p>
+<div class="box">
+<h3>Who you are buying from</h3><p>{CO['name']}, registered in England &amp; Wales No. {CO['crn']}, VAT {CO['vat']}, {esc(CO['address'])}. Email <a href="mailto:{CO['email']}">{CO['email']}</a>.</p>
+<h3 style="margin-top:16px">Prices and payment</h3><p>All prices are in pounds sterling and include VAT. Delivery is £3.99, free on orders over £40. Payment is taken by card on Stripe's secure page when you place the order. Up to 3 of each item per order.</p>
+<h3 style="margin-top:16px">Your order</h3><p>Our contract is made when we email your order confirmation. If an item sells out before your order is dispatched we will cancel that order, refund you in full straight away and let you know by email.</p>
+<h3 style="margin-top:16px">Delivery</h3><p>UK addresses only. Orders are dispatched within 1–2 working days and usually arrive 1–3 working days later. We email your tracking number when the parcel leaves our warehouse.</p>
+<h3 style="margin-top:16px">Cancelling and returns (14 days)</h3><p>Under the Consumer Contracts Regulations you can cancel your order for any reason within 14 days of receiving it. Email us within that time, then send the item back within a further 14 days; we refund the item price and the standard delivery cost within 14 days of getting it back. Items must be unused and complete. You pay the cost of returning an item unless it is faulty or not as described.</p>
+<h3 style="margin-top:16px">Faulty items</h3><p>Your rights under the Consumer Rights Act 2015 are not affected. If an item is faulty, damaged or not as described, email us and we will refund or replace it, including return postage.</p>
+<h3 style="margin-top:16px">Toy safety</h3><p>All toys are genuine branded products carrying the UKCA or CE mark. Please read the age warnings on each pack.</p>
+</div></div></section>"""
+    (SITE / "terms.html").write_text(page(f"Terms of sale — {CO['name']}", "terms.html", terms, "Terms of sale of Llamaxy Limited."))
+    thanks = f"""<section><div class="wrap" style="max-width:760px;text-align:center" id="thanks">
+<h2>Thank you for your order! 🎉</h2><p class="sub">Your payment went through. We have emailed your order confirmation, and we will send your tracking number as soon as the parcel leaves our warehouse (within 1–2 working days).</p>
+<p><a class="btn" href="products.html">Keep shopping</a></p></div></section>"""
+    (SITE / "thanks.html").write_text(page(f"Thank you — {CO['name']}", "thanks.html", thanks, "Order received."))
+    # Checkout endpoint reads prices and stock from here, never from the browser (Apo 4 Kas 2026)
+    (SITE / "prices.json").write_text(json.dumps({p["asin"]: {"p": p["price"], "t": p["title"][:120], "i": p["image"]} for p in products if p["price"]}))
+    # Hidden preview with Stripe TEST payments until Apo approves (noindex, not linked anywhere)
+    pv = SITE / PREVIEW
+    pv.mkdir()
+    for f in SITE.glob("*.html"):
+        h = f.read_text().replace('<meta charset="utf-8">', '<meta charset="utf-8"><meta name="robots" content="noindex">', 1)
+        h = h.replace('src="img/', 'src="../img/').replace('<script src="shop.js">', '<script>window.LLX_TEST=1</script><script src="../shop.js">')
+        h = h.replace('href="style.css"', 'href="../style.css"').replace('href="fredoka.woff2"', 'href="../fredoka.woff2"')
+        (pv / f.name).write_text(h)
     print(f"site/ olusturuldu: {n} urun, {len(brands)} marka")
 
 
