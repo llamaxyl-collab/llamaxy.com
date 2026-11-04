@@ -24,7 +24,7 @@ export default {
     }
     const sub = lines.reduce((n, x) => n + x.p * x.q, 0)
     const f = {
-      mode: 'payment', locale: 'en-GB',
+      mode: 'payment', locale: 'en-GB', 'adaptive_pricing[enabled]': 'false', // always GBP (4 Nov: OVH FR IP showed EUR +4% fee)
       success_url: back + 'thanks.html', cancel_url: back + 'basket.html',
       'shipping_address_collection[allowed_countries][0]': 'GB',
       'phone_number_collection[enabled]': 'true',
