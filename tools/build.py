@@ -1,7 +1,7 @@
 """data/products.json + sirket bilgileri -> site/ (statik HTML)
 Kullanim: python3 tools/build.py
 """
-import html, json, math, shutil, sqlite3
+import html, json, math, re, shutil, sqlite3
 from urllib.request import Request, urlopen
 from collections import Counter
 from pathlib import Path
@@ -32,6 +32,15 @@ CAT = {
 }
 
 esc = html.escape
+# Oyuncak turleri (basliktan); renkler dukkan paleti
+TYPES = [("Plush & soft toys", "#ff5d73", r"plush|squishmallow|soft toy|cuddl|teddy"),
+         ("Collectibles", "#8b5cf6", r"blind|mystery|capsule|surprise|collectible|series \d|funko|pop!"),
+         ("Action figures", "#2b6cff", r"figure|transformers|marvel|star wars|wwe|masters of"),
+         ("Animals & dinos", "#1fb978", r"schleich|dinosaur|dino|animal|horse"),
+         ("Cars & vehicles", "#ff8a00", r"hot wheels|car\b|cars\b|vehicle|truck|matchbox|train"),
+         ("Dolls & playsets", "#ff4fb4", r"doll|barbie|polly|playset|house"),
+         ("Games & creative", "#00b3c7", r"game|puzzle|cards|jigsaw|yu-gi|lego|build|magnetic|geomag|craft|slime|kit"),
+         ("More toys", "#ffb400", r"$^")]
 products = DATA["products"]
 for p in products:
     p["cat"] = CAT.get(p["category"], "Other")
@@ -39,6 +48,7 @@ for p in products:
 products = [p for p in products if p["cat"] == "Toys & Games"]
 # Site fiyati = Amazon FBA fiyatimizin %15 ustu, .99'a yuvarli; FBA stogu yoksa "Out of stock" (Apo 4 Kas 2026)
 _db = sqlite3.connect("file:" + str(Path.home() / "src/data/app.db") + "?mode=ro", uri=True)
+QTY = dict(_db.execute("select asin, sum(quantity) from listings where fulfillment_channel like 'AMAZON%' and status = 'Active' group by asin"))
 AMZ = dict(_db.execute("select asin, max(price) from listings where fulfillment_channel like 'AMAZON%' "
                        "and quantity > 0 and status = 'Active' group by asin"))
 IMG = ROOT / "data/img"
@@ -53,6 +63,9 @@ for p in products:
     p["image"] = "img/" + f.name if f.exists() else ""
     a = AMZ.get(p["asin"])
     p["price"] = math.ceil(a * 1.15) - 0.01 if a else None
+    p["qty"] = QTY.get(p["asin"]) or 0
+    t = (p["title"] + " " + p["brand"]).lower()
+    p["type"] = next((n for n, _, r in TYPES if re.search(r, t)), "More toys")
 cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
 products.sort(key=lambda p: (p["price"] is None, p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
@@ -66,109 +79,153 @@ toy_brands = Counter(p["brand"] for p in products if p["cat"] == "Toys & Games" 
 top_brands = [b for b in SHOW_BRANDS if toy_brands.get(b)]
 
 CSS = """
-.buy{display:block;margin-top:10px;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;border-radius:8px;padding:7px 0}
-.buy:hover{background:var(--accent-d)}
-button.buy{width:100%;border:0;font:inherit;font-weight:600;cursor:pointer}
-.buy.off{background:#c9ced8;cursor:default}
-.price{font-size:17px;font-weight:700;margin-top:auto}
-.bk{position:relative;text-decoration:none;font-weight:600}
-.bk i{font-style:normal;background:var(--accent);color:#fff;border-radius:999px;padding:0 7px;font-size:12px;margin-left:4px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;z-index:50}
-table.cart{width:100%;border-collapse:collapse;background:#fff}
-table.cart td{border-bottom:1px solid var(--line);padding:10px;vertical-align:middle}
-table.cart img{width:56px;height:56px;object-fit:contain}
-table.cart input{width:56px;font:inherit;padding:4px}
-.sum{max-width:360px;margin-left:auto;margin-top:20px}
-.sum div{display:flex;justify-content:space-between;padding:4px 0}
-.sum .tot{font-weight:700;font-size:19px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
-form.co{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-form.co label{display:flex;flex-direction:column;font-size:14px;color:var(--muted);gap:4px}
-form.co label.w{grid-column:1/-1}
-form.co input,form.co select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--ink)}
-.err{background:#fdecec;border:1px solid #f2b8b8;color:#8a1f1f;border-radius:10px;padding:14px 18px;margin-top:16px}
-.spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-3px;margin-right:8px}
-@keyframes r{to{transform:rotate(360deg)}}
-:root{--ink:#14213d;--muted:#5b6475;--line:#e3e6ec;--bg:#f7f8fa;--card:#fff;--accent:#e07a1f;--accent-d:#b8600f}
+@font-face{font-family:Fredoka;src:url(fredoka.woff2) format("woff2");font-weight:300 700;font-display:swap}
+:root{--ink:#1d2340;--muted:#6a7090;--line:#ebeef5;--bg:#fff;--red:#ff4757;--red-d:#e0303f;--blue:#2b6cff;--yellow:#ffc93c;--green:#1fb978;--purple:#8b5cf6;--soft:#f5f7ff}
 *{box-sizing:border-box}
-body{margin:0;display:flex;flex-direction:column;min-height:100vh;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+body{margin:0;display:flex;flex-direction:column;min-height:100vh;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+h1,h2,h3,.logo,.fun,nav.cats a,.btn,.buy,.price,.stat b{font-family:Fredoka,ui-rounded,"Arial Rounded MT Bold",sans-serif}
 a{color:inherit}
-.wrap{width:100%;max-width:1160px;margin:0 auto;padding-inline:20px}
-header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;flex-wrap:wrap}
-.logo{font-weight:800;font-size:22px;letter-spacing:-.02em;text-decoration:none}
-.logo span{color:var(--accent)}
-nav{display:flex;gap:22px;flex-wrap:wrap}
-nav a{text-decoration:none;color:var(--muted);font-weight:500;font-size:15px}
-nav a:hover,nav a.on{color:var(--ink)}
-.hero{background:linear-gradient(135deg,#14213d 0%,#23365f 100%);color:#fff;padding-block:72px}
-.hero h1{font-size:clamp(30px,5vw,48px);line-height:1.15;margin:0 0 16px;letter-spacing:-.02em;max-width:760px}
-.hero p{font-size:18px;color:#c9d1e3;max-width:680px;margin:0 0 28px}
-.btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600}
-.btn:hover{background:var(--accent-d)}
-.btn.ghost{background:transparent;border:1px solid #6d7a99;margin-left:8px}
-section{padding-block:56px}
-h2{font-size:28px;margin:0 0 8px;letter-spacing:-.01em}
-.sub{color:var(--muted);margin:0 0 28px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:-36px}
-.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px}
-.stat b{display:block;font-size:28px}
+.wrap{width:100%;max-width:1200px;margin:0 auto;padding-inline:20px}
+.promo{background:var(--red);color:#fff;text-align:center;font-weight:600;font-size:14px;padding:8px 12px;letter-spacing:.02em}
+.promo b{color:var(--yellow)}
+header{background:var(--blue);color:#fff;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+header .wrap{display:flex;align-items:center;gap:24px;min-height:78px}
+.logo{font-weight:700;font-size:34px;letter-spacing:-.01em;text-decoration:none;color:#fff;line-height:1;white-space:nowrap}
+.logo span{color:var(--yellow)}
+.logo small{display:block;font-size:12px;font-weight:500;color:#d6e2ff;letter-spacing:.06em;margin-top:2px}
+form.search{flex:1;display:flex;background:#fff;border-radius:999px;overflow:hidden;max-width:560px}
+form.search input{flex:1;border:0;font:inherit;padding:12px 20px;outline:0;min-width:0}
+form.search button{border:0;background:var(--red);color:#fff;font:600 15px Fredoka,sans-serif;padding:0 22px;cursor:pointer}
+.hlinks{display:flex;gap:18px;align-items:center;margin-left:auto}
+.hlinks a{text-decoration:none;font-weight:600;font-size:14px;color:#fff;white-space:nowrap}
+.bk{background:var(--yellow);color:var(--ink)!important;border-radius:999px;padding:9px 16px}
+.bk i{font-style:normal;background:var(--red);color:#fff;border-radius:999px;padding:0 7px;font-size:12px;margin-left:6px}
+nav.cats{background:#fff;border-bottom:1px solid var(--line)}
+nav.cats .wrap{display:flex;gap:6px;overflow-x:auto;padding-block:8px}
+nav.cats a{text-decoration:none;font-weight:600;font-size:15px;padding:8px 14px;border-radius:999px;white-space:nowrap}
+nav.cats a:hover{background:var(--soft)}
+nav.cats a.hot{color:var(--red)}
+.usp{background:var(--soft);font-size:13px;font-weight:600;color:var(--muted)}
+.usp .wrap{display:flex;justify-content:space-around;gap:12px;flex-wrap:wrap;padding-block:9px}
+.hero{background:radial-gradient(circle at 85% 30%,#ffe27a 0,#ffc93c 30%,#ff9f43 100%);overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:24px;min-height:400px}
+.hero h1{font-size:clamp(34px,5.4vw,60px);line-height:1.02;margin:0 0 14px;color:var(--ink)}
+.hero h1 em{font-style:normal;color:var(--red)}
+.hero p{font-size:18px;margin:0 0 26px;color:#3c3420;max-width:500px}
+.collage{position:relative;height:380px}
+.collage img{position:absolute;background:#fff;border-radius:24px;padding:14px;box-shadow:0 14px 30px rgba(120,60,0,.25);object-fit:contain}
+.collage img:nth-child(1){width:52%;height:58%;left:4%;top:6%;transform:rotate(-6deg)}
+.collage img:nth-child(2){width:44%;height:50%;right:2%;top:0;transform:rotate(5deg)}
+.collage img:nth-child(3){width:40%;height:46%;left:22%;bottom:0;transform:rotate(3deg)}
+.collage img:nth-child(4){width:36%;height:42%;right:6%;bottom:4%;transform:rotate(-4deg)}
+.btn{display:inline-block;background:var(--red);color:#fff;text-decoration:none;padding:14px 30px;border-radius:999px;font-weight:600;font-size:18px;border:0;cursor:pointer;box-shadow:0 4px 0 var(--red-d)}
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:0 4px 0 #e6d6b0;margin-left:10px}
+section{padding-block:48px}
+h2{font-size:34px;margin:0 0 6px;text-align:center}
+.sub{color:var(--muted);margin:0 0 28px;text-align:center}
+.types{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:18px}
+.type{text-decoration:none;text-align:center;font:600 16px Fredoka,sans-serif}
+.type .c{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:8px;border:6px solid #fff;box-shadow:0 6px 16px rgba(0,0,0,.12);transition:transform .15s}
+.type:hover .c{transform:scale(1.05) rotate(-3deg)}
+.type img{width:66%;height:66%;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.2));background:#fff;border-radius:18px;padding:6px}
+.band{background:var(--soft)}
+.prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.prices a{text-decoration:none;color:#fff;border-radius:22px;padding:26px;font:700 26px Fredoka,sans-serif;line-height:1.1}
+.prices a small{display:block;font-size:15px;font-weight:500;opacity:.9;margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.chip{background:#fff;border:2px solid var(--line);border-radius:999px;padding:8px 18px;font:600 15px Fredoka,sans-serif;text-decoration:none}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.stat{background:#fff;border-radius:20px;padding:20px;text-align:center;border:2px solid var(--line)}
+.stat .e{font-size:34px}
+.stat b{display:block;font-size:20px}
 .stat span{color:var(--muted);font-size:14px}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
-.box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px}
-.box h3{margin:0 0 6px;font-size:18px}
+.box{background:#fff;border:2px solid var(--line);border-radius:20px;padding:24px}
+.box h3{margin:0 0 6px;font-size:20px}
 .box p{margin:0;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:14px}
 dl.facts{display:grid;grid-template-columns:max-content 1fr;gap:10px 24px;margin:0}
 dl.facts dt{color:var(--muted)}
 dl.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.card .img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;padding:14px;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.card{background:#fff;border:2px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;position:relative;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(29,35,64,.12);border-color:#dfe4f2}
+.card .img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;padding:16px;background:#fff}
 .card img{max-width:100%;max-height:100%;object-fit:contain}
-.card .t{padding:10px 14px 14px;border-top:1px solid var(--line);font-size:13px;flex:1;display:flex;flex-direction:column;gap:4px}
-.card .b{font-size:12px;color:var(--accent-d);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
-.card .n{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.card .a{font-size:11px;color:var(--muted);margin-top:auto}
+.card .t{padding:4px 16px 16px;font-size:14px;flex:1;display:flex;flex-direction:column;gap:4px}
+.card .b{font-size:12px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.card .n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.9em}
+.badge{position:absolute;top:12px;left:12px;background:var(--red);color:#fff;font:600 12px Fredoka,sans-serif;border-radius:999px;padding:3px 10px}
+.badge.g{background:var(--green)}
+.price{font-size:24px;font-weight:700;color:var(--red);margin-top:auto}
+.buy{display:block;margin-top:8px;text-align:center;background:var(--green);color:#fff;text-decoration:none;font-weight:600;border-radius:999px;padding:10px 0;font-size:16px}
+.buy:hover{filter:brightness(.95)}
+button.buy{width:100%;border:0;cursor:pointer;box-shadow:0 3px 0 #149a62}
+.buy.off{background:#d5d9e4;box-shadow:none;cursor:default}
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
-.filters input,.filters select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:0;flex:1 1 200px}
-.note{background:#fff7ec;border:1px solid #f3d6b3;border-radius:10px;padding:12px 16px;font-size:14px;color:#6b4a1f;margin-bottom:20px}
+.filters input,.filters select{font:inherit;padding:11px 14px;border:2px solid var(--line);border-radius:999px;background:#fff;min-width:0;flex:1 1 180px}
 .count{color:var(--muted);font-size:14px;margin-bottom:12px}
-footer{margin-top:auto;background:#0f1a30;color:#aab3c7;padding-block:40px;font-size:14px}
-footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}
-footer b{color:#fff}
-footer a{color:#fff}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-size:14px;z-index:50}
+table.cart{width:100%;border-collapse:collapse;background:#fff}
+table.cart td{border-bottom:1px solid var(--line);padding:10px;vertical-align:middle}
+table.cart img{width:64px;height:64px;object-fit:contain}
+table.cart input{width:56px;font:inherit;padding:4px}
+.sum{max-width:360px;margin-left:auto;margin-top:20px}
+.sum div{display:flex;justify-content:space-between;padding:4px 0}
+.sum .tot{font-weight:700;font-size:20px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+form.co{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+form.co label{display:flex;flex-direction:column;font-size:14px;color:var(--muted);gap:4px}
+form.co label.w{grid-column:1/-1}
+form.co input,form.co select{font:inherit;padding:10px 12px;border:2px solid var(--line);border-radius:12px;color:var(--ink)}
+.err{background:#fdecec;border:1px solid #f2b8b8;color:#8a1f1f;border-radius:14px;padding:14px 18px;margin-top:16px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes r{to{transform:rotate(360deg)}}
+footer{margin-top:auto;background:var(--ink);color:#b9bfd6;padding-block:44px 28px;font-size:14px}
+footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
+footer b{color:#fff;font:600 17px Fredoka,sans-serif;display:block;margin-bottom:8px}
+footer a{color:#dfe4f5;text-decoration:none;display:block;line-height:1.9}
+footer a:hover{color:var(--yellow)}
+footer .legal{display:block;margin-top:28px;border-top:1px solid #333a5c;padding-top:18px;font-size:12px;color:#8990ad}
+@media(max-width:800px){.hero .wrap{grid-template-columns:1fr}.collage{height:260px}header .wrap{flex-wrap:wrap;padding-block:10px}form.search{order:3;flex-basis:100%;max-width:none}.hlinks .hide{display:none}}
 """
 
-
 def page(title, active, body, desc):
-    links = [("index.html", "Home"), ("products.html", "Products"), ("suppliers.html", "For suppliers"), ("about.html", "Company"), ("contact.html", "Contact")]
-    nav = "".join(f'<a href="{h}"{" class=on" if h == active else ""}>{t}</a>' for h, t in links)
+    cats_nav = "".join(f'<a href="products.html#t={esc(n)}">{esc(n)}</a>' for n, _, _ in TYPES if n != "More toys")
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2314213d'/><text x='50' y='70' font-size='62' text-anchor='middle' fill='%23e07a1f' font-family='Arial' font-weight='bold'>L</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='30' fill='%232b6cff'/><text x='50' y='72' font-size='66' text-anchor='middle' fill='%23ffc93c' font-family='Arial' font-weight='bold'>L</text></svg>">
+<link rel="preload" href="fredoka.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css"></head><body>
-<header><div class="wrap"><a class="logo" href="index.html">Llamaxy<span>.</span></a><nav>{nav}<a class="bk" href="basket.html">Basket<i id="bkn">0</i></a></nav></div></header>
+<div class="promo">🎄 Christmas toy shop is open · <b>FREE UK delivery</b> on orders over £40</div>
+<header><div class="wrap"><a class="logo" href="index.html">Llamaxy<span>!</span><small>TOYS · GAMES · COLLECTIBLES</small></a>
+<form class="search" action="products.html"><input name="q" type="search" placeholder="Search toys, brands, characters…"><button>Search</button></form>
+<div class="hlinks"><a class="hide" href="help.html">Help</a><a class="bk" href="basket.html">🛒 Basket<i id="bkn">0</i></a></div></div></header>
+<nav class="cats"><div class="wrap"><a href="products.html" class="hot">All toys</a>{cats_nav}<a href="products.html#p=10" class="hot">Under £10</a></div></nav>
+<div class="usp"><div class="wrap"><span>🚚 Dispatched in 1–2 working days</span><span>↩️ 14-day returns</span><span>✅ 100% genuine branded toys</span><span>🔒 Secure checkout</span></div></div>
 {body}
 <footer><div class="wrap">
-<div><b>{CO['name']}</b><br>Registered in England &amp; Wales<br>Company No. {CO['crn']}<br>VAT No. {CO['vat']}</div>
-<div><b>Office address</b><br>{esc(CO['address'])}</div>
-<div><b>Contact</b><br>Trade: <a href="mailto:{CO['trade']}">{CO['trade']}</a><br><a href="mailto:{CO['email']}">{CO['email']}</a></div>
-</div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}. · <a href="privacy.html">Privacy</a></div></footer>
+<div><b>Shop</b><a href="products.html">All toys</a>{"".join(f'<a href="products.html#t={esc(n)}">{esc(n)}</a>' for n, _, _ in TYPES[:4])}</div>
+<div><b>Help</b><a href="help.html">Delivery &amp; returns</a><a href="contact.html">Contact us</a><a href="basket.html">Your basket</a></div>
+<div><b>About Llamaxy</b><a href="about.html">Our company</a><a href="suppliers.html">Trade &amp; suppliers</a><a href="privacy.html">Privacy</a></div>
+<div><b>Questions?</b>We're happy to help.<a href="mailto:{CO['email']}">{CO['email']}</a></div>
+<span class="legal" style="grid-column:1/-1">© {DATA['updated'][:4]} {CO['name']} · Registered in England &amp; Wales No. {CO['crn']} · VAT {CO['vat']} · {esc(CO['address'])}</span>
+</div></footer>
 <script src="shop.js"></script></body></html>"""
 
 
 def card(p):
-    return (f'<div class="card" data-c="{esc(p["cat"])}" data-b="{esc(p["brand"])}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">'
+    badge = ""
+    if p["price"] and p["qty"] <= 3:
+        badge = f'<span class="badge">Only {p["qty"]} left</span>'
+    return (f'<div class="card" data-c="{esc(p["type"])}" data-b="{esc(p["brand"])}" data-p="{p["price"] or 0}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">{badge}'
             f'<div class="img"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></div>'
             f'<div class="t"><div class="b">{esc(p["brand"])}</div><div class="n">{esc(p["title"])}</div>'
             + (f'<div class="price">£{p["price"]:.2f}</div><button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" '
                f'data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
-               if p["price"] else '<div class="price" style="color:var(--muted);font-size:14px">Out of stock</div><button class="buy off" disabled>Add to basket</button>')
-            + 
-            '</div></div>')
-
+               if p["price"] else '<div class="price" style="color:var(--muted);font-size:16px">Out of stock</div><button class="buy off" disabled>Add to basket</button>')
+            + '</div></div>')
 
 def build():
     if SITE.exists():
@@ -177,41 +234,53 @@ def build():
     (SITE / "style.css").write_text(CSS)
     shutil.copy(ROOT / "tools/shop.js", SITE / "shop.js")
     shutil.copytree(ROOT / "data/img", SITE / "img")
+    shutil.copy(ROOT / "tools/font/fredoka.woff2", SITE / "fredoka.woff2")
     (SITE / "CNAME").write_text("llamaxy.com\n")
     (SITE / ".nojekyll").write_text("")
 
     n = len(products)
     instock = [p for p in products if p["price"]]
-    featured = instock[::max(1, len(instock) // 10)][:10]
+    featured = sorted(instock, key=lambda p: -p["qty"])[:15][::-1][:10]
+    pick = {}
+    for p in sorted(instock, key=lambda p: -p["qty"]):
+        pick.setdefault(p["type"], p)
+    hero_imgs = "".join(f'<img src="{esc(pick[t]["image"])}" alt="">' for t in ("Plush & soft toys", "Cars & vehicles", "Animals & dinos", "Collectibles") if t in pick)
+    types_html = "".join(f'<a class="type" href="products.html#t={esc(n)}"><div class="c" style="background:{c}">'
+                         + (f'<img src="{esc(pick[n]["image"])}" alt="">' if n in pick else '') + f'</div>{esc(n)}</a>'
+                         for n, c, _ in TYPES if n in pick and n != "More toys")
     home = f"""
 <div class="hero"><div class="wrap">
-<h1>Genuine branded toys, games and collectibles</h1>
-<p>Shop {n}+ original toys from the brands kids love — Squishmallows, Schleich, Funko, Hot Wheels, Barbie and more. Brand-new, sealed stock, dispatched fast from the UK.</p>
-<a class="btn" href="products.html">Shop now</a><a class="btn ghost" href="suppliers.html">Trade &amp; suppliers</a>
-</div></div>
-<div class="wrap"><div class="stats">
-<div class="stat"><b>Free delivery</b><span>On UK orders over £40</span></div>
-<div class="stat"><b>1–2 days</b><span>Dispatched within 1–2 working days</span></div>
-<div class="stat"><b>14-day returns</b><span>Change your mind? Send it back</span></div>
-<div class="stat"><b>100% genuine</b><span>New, sealed, from authorised distributors</span></div>
+<div><h1>Toys they'll <em>love</em>, prices you'll like</h1>
+<p>{n}+ genuine branded toys — Squishmallows, Schleich, Funko, Hot Wheels, Barbie and more. Brand-new, sealed and sent fast from the UK.</p>
+<a class="btn" href="products.html">Shop all toys</a><a class="btn ghost" href="products.html#p=10">Under £10</a></div>
+<div class="collage">{hero_imgs}</div>
 </div></div>
 <section><div class="wrap">
-<h2>Why shop with Llamaxy</h2><p class="sub">A UK toy retailer and importer, trading since 2021.</p>
-<div class="cols">
-<div class="box"><h3>Only original products</h3><p>Everything we sell is brand-new and bought from authorised distributors in the UK and Europe. No copies, no grey-market fakes.</p></div>
-<div class="box"><h3>Fast UK delivery</h3><p>Orders are packed in our UK fulfilment centre and dispatched within 1–2 working days with tracking.</p></div>
-<div class="box"><h3>Secure checkout</h3><p>Pay safely by card, Apple Pay or Google Pay. We never see or store your card details.</p></div>
-</div></div></section>
-<section style="background:#fff;border-block:1px solid var(--line)"><div class="wrap">
-<h2>Brands we carry</h2><p class="sub">A selection of brands currently in our catalogue.</p>
-<div class="chips">{''.join(f'<span class="chip">{esc(b)}</span>' for b in top_brands)}</div>
+<h2>Shop by type</h2><p class="sub">Find the perfect toy in a couple of clicks.</p>
+<div class="types">{types_html}</div>
+</div></section>
+<section class="band"><div class="wrap">
+<h2>Popular right now</h2><p class="sub"><a href="products.html">See all toys →</a></p>
+<div class="grid">{''.join(card(p) for p in featured)}</div>
 </div></section>
 <section><div class="wrap">
-<h2>Shop by category</h2><p class="sub">Toys, games and collectibles.</p>
-<div class="chips">{''.join(f'<a class="chip" style="text-decoration:none" href="products.html#{esc(c)}">{esc(c)} · {k}</a>' for c, k in cats.most_common() if c != "Other")}</div>
-<h2 style="margin-top:48px">Popular right now</h2><p class="sub"><a href="products.html">See all {n} products →</a></p>
-<div class="grid">{''.join(card(p) for p in featured)}</div>
-</div></section>"""
+<h2>Shop by price</h2><p class="sub">Stocking fillers to big presents.</p>
+<div class="prices">
+<a href="products.html#p=10" style="background:var(--green)">Under £10<small>Pocket-money toys</small></a>
+<a href="products.html#p=20" style="background:var(--blue)">Under £20<small>Stocking fillers</small></a>
+<a href="products.html#p=40" style="background:var(--purple)">Under £40<small>Birthday presents</small></a>
+<a href="products.html#p=9999" style="background:var(--red)">Big presents<small>The wow gifts</small></a>
+</div></div></section>
+<section class="band"><div class="wrap">
+<h2>Top brands</h2><p class="sub">Official, original products from the brands kids ask for.</p>
+<div class="chips">{''.join(f'<a class="chip" href="products.html?q={esc(b)}">{esc(b)}</a>' for b in top_brands)}</div>
+</div></section>
+<section><div class="wrap"><div class="stats">
+<div class="stat"><div class="e">🚚</div><b>Free delivery</b><span>On UK orders over £40</span></div>
+<div class="stat"><div class="e">⚡</div><b>Fast dispatch</b><span>Within 1–2 working days, tracked</span></div>
+<div class="stat"><div class="e">↩️</div><b>14-day returns</b><span>Change of mind? No problem</span></div>
+<div class="stat"><div class="e">✅</div><b>100% genuine</b><span>From authorised distributors</span></div>
+</div></div></section>"""
     sup = f"""<div class="hero"><div class="wrap">
 <h1>Working with {CO['name']}</h1>
 <p>Information for distributors, wholesalers and brand owners who are considering opening a trade account for us.</p>
@@ -249,24 +318,31 @@ def build():
     (SITE / "index.html").write_text(page(f"{CO['name']} — Genuine Branded Toys, UK Delivery", "index.html", home,
                                           "Llamaxy Limited is a UK importer and retailer of branded toys, games and collectibles."))
 
-    opts_c = "".join(f'<option>{esc(c)}</option>' for c, _ in cats.most_common())
+    opts_c = "".join(f'<option>{esc(t)}</option>' for t, _, _ in TYPES)
     opts_b = "".join(f'<option>{esc(b)}</option>' for b in sorted(brands, key=str.lower))
     prod = f"""<section><div class="wrap">
-<h2>Shop all toys</h2><p class="sub">Genuine branded toys, games and collectibles. Free UK delivery over £40.</p>
-<div class="filters"><input id="q" type="search" placeholder="Search product or brand">
-<select id="c"><option value="">All categories</option>{opts_c}</select>
-<select id="b"><option value="">All brands</option>{opts_b}</select></div>
+<h2 id="h">All toys</h2><p class="sub">Genuine branded toys, games and collectibles. Free UK delivery over £40.</p>
+<div class="filters"><input id="q" type="search" placeholder="Search toys or brands">
+<select id="c"><option value="">All types</option>{opts_c}</select>
+<select id="b"><option value="">All brands</option>{opts_b}</select>
+<select id="p"><option value="">Any price</option><option value="10">Under £10</option><option value="20">Under £20</option><option value="40">Under £40</option><option value="9999">£40 and over</option></select>
+<select id="o"><option value="">Recommended</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select></div>
 <div class="count" id="cnt"></div>
 <div class="grid" id="g">{''.join(card(p) for p in products)}</div>
 </div></section>
 <script>
-const q=document.getElementById('q'),c=document.getElementById('c'),b=document.getElementById('b'),cards=[...document.querySelectorAll('#g .card')],cnt=document.getElementById('cnt');
-function f(){{const s=q.value.trim().toLowerCase();let n=0;for(const e of cards){{const ok=(!s||e.dataset.s.includes(s))&&(!c.value||e.dataset.c===c.value)&&(!b.value||e.dataset.b===b.value);e.hidden=!ok;if(ok)n++}}cnt.textContent=n+' products'}}
-[q,c,b].forEach(x=>x.addEventListener('input',f));
-const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>o.value===h))c.value=h;f();
+const $i=x=>document.getElementById(x),q=$i('q'),c=$i('c'),b=$i('b'),pr=$i('p'),o=$i('o'),g=$i('g'),cards=[...g.children],cnt=$i('cnt');
+const inP=v=>{{const x=+v;if(!pr.value)return true;if(!x)return false;return pr.value==='9999'?x>=40:x<+pr.value}};
+function f(){{const s=q.value.trim().toLowerCase();let n=0;for(const e of cards){{const ok=(!s||e.dataset.s.includes(s))&&(!c.value||e.dataset.c===c.value)&&(!b.value||e.dataset.b===b.value)&&inP(e.dataset.p);e.hidden=!ok;if(ok)n++}}
+ const k=o.value,arr=k?[...cards].sort((x,y)=>{{const a=+x.dataset.p||1e9*(k==='lo'?1:-1),z=+y.dataset.p||1e9*(k==='lo'?1:-1);return k==='lo'?a-z:z-a}}):cards;arr.forEach(e=>g.append(e));
+ cnt.textContent=n+' toys';$i('h').textContent=c.value||(pr.selectedIndex?pr.options[pr.selectedIndex].text:'All toys')}}
+[q,c,b,pr,o].forEach(x=>x.addEventListener('input',f));
+const P=new URLSearchParams(location.search),H=new URLSearchParams(location.hash.slice(1));
+if(P.get('q'))q.value=P.get('q');if(H.get('t'))c.value=H.get('t');if(H.get('p'))pr.value=H.get('p');
+window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.hash.slice(1));c.value=h.get('t')||'';pr.value=h.get('p')||'';f()}});f();
 </script>"""
-    (SITE / "products.html").write_text(page(f"Products — {CO['name']}", "products.html", prod,
-                                              "Product catalogue of Llamaxy Limited."))
+    (SITE / "products.html").write_text(page(f"Shop all toys — Llamaxy", "products.html", prod,
+                                              "Shop genuine branded toys, games and collectibles with fast UK delivery."))
 
     facts = f"""<dl class="facts">
 <dt>Legal name</dt><dd>{CO['name']}</dd>
@@ -329,6 +405,15 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <button class="btn" style="grid-column:1/-1;border:0;font:inherit;font-weight:600;cursor:pointer" id="pay">Continue to secure payment</button>
 </form><div id="perr"></div></div></div></section>"""
     (SITE / "checkout.html").write_text(page(f"Checkout — {CO['name']}", "checkout.html", checkout, "Checkout."))
+    help_ = f"""<section><div class="wrap" style="max-width:860px">
+<h2>Delivery &amp; returns</h2><p class="sub">Everything you need to know about your order.</p>
+<div class="cols">
+<div class="box"><h3>🚚 Delivery</h3><p>We deliver to UK addresses only. Orders are dispatched within 1–2 working days from our UK fulfilment centre and usually arrive 1–3 days later. Standard delivery is £3.99 and free on orders over £40. You'll get an email with tracking when your order ships.</p></div>
+<div class="box"><h3>↩️ Returns</h3><p>Changed your mind? You can return unopened items within 14 days of delivery for a full refund. Email <a href="mailto:{CO['email']}">{CO['email']}</a> with your order details and we'll send you the return address. Faulty or damaged items are always refunded or replaced.</p></div>
+<div class="box"><h3>🛒 Quantities</h3><p>To keep prices fair for everyone, you can buy up to 3 of each item. Need more for a school, club or shop? <a href="contact.html">Contact us</a>.</p></div>
+<div class="box"><h3>🔒 Payment</h3><p>Payments are handled by a secure card payment provider. We never see or store your card details. Prices include VAT.</p></div>
+</div></div></section>"""
+    (SITE / "help.html").write_text(page(f"Delivery & returns — Llamaxy", "help.html", help_, "Delivery and returns information."))
     print(f"site/ olusturuldu: {n} urun, {len(brands)} marka")
 
 
