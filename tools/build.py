@@ -36,13 +36,13 @@ for p in products:
     p["cat"] = CAT.get(p["category"], "Other")
 # Sitede sadece oyuncaklar (Apo 10 Eki 2026)
 products = [p for p in products if p["cat"] == "Toys & Games"]
-# Site fiyati = Amazon FBA fiyatimizin %25 ustu, .99'a yuvarli; FBA stogu yoksa "Out of stock" (Apo 4 Kas 2026)
+# Site fiyati = Amazon FBA fiyatimizin %10 ustu, .99'a yuvarli; FBA stogu yoksa "Out of stock" (Apo 4 Kas 2026)
 _db = sqlite3.connect("file:" + str(Path.home() / "src/data/app.db") + "?mode=ro", uri=True)
 AMZ = dict(_db.execute("select asin, max(price) from listings where fulfillment_channel like 'AMAZON%' "
                        "and quantity > 0 and status = 'Active' group by asin"))
 for p in products:
     a = AMZ.get(p["asin"])
-    p["price"] = math.ceil(a * 1.25) - 0.01 if a else None
+    p["price"] = math.ceil(a * 1.10) - 0.01 if a else None
 cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
 products.sort(key=lambda p: (p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
