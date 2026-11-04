@@ -1,7 +1,7 @@
 """data/products.json + sirket bilgileri -> site/ (statik HTML)
 Kullanim: python3 tools/build.py
 """
-import html, json, shutil
+import html, json, math, shutil, sqlite3
 from collections import Counter
 from pathlib import Path
 
@@ -36,6 +36,13 @@ for p in products:
     p["cat"] = CAT.get(p["category"], "Other")
 # Sitede sadece oyuncaklar (Apo 10 Eki 2026)
 products = [p for p in products if p["cat"] == "Toys & Games"]
+# Site fiyati = Amazon FBA fiyatimizin %25 ustu, .99'a yuvarli; FBA stogu yoksa "Out of stock" (Apo 4 Kas 2026)
+_db = sqlite3.connect("file:" + str(Path.home() / "src/data/app.db") + "?mode=ro", uri=True)
+AMZ = dict(_db.execute("select asin, max(price) from listings where fulfillment_channel like 'AMAZON%' "
+                       "and quantity > 0 and status = 'Active' group by asin"))
+for p in products:
+    a = AMZ.get(p["asin"])
+    p["price"] = math.ceil(a * 1.25) - 0.01 if a else None
 cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
 products.sort(key=lambda p: (p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
@@ -51,6 +58,26 @@ top_brands = [b for b in SHOW_BRANDS if toy_brands.get(b)]
 CSS = """
 .buy{display:block;margin-top:10px;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;border-radius:8px;padding:7px 0}
 .buy:hover{background:var(--accent-d)}
+button.buy{width:100%;border:0;font:inherit;font-weight:600;cursor:pointer}
+.buy.off{background:#c9ced8;cursor:default}
+.price{font-size:17px;font-weight:700;margin-top:auto}
+.bk{position:relative;text-decoration:none;font-weight:600}
+.bk i{font-style:normal;background:var(--accent);color:#fff;border-radius:999px;padding:0 7px;font-size:12px;margin-left:4px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;z-index:50}
+table.cart{width:100%;border-collapse:collapse;background:#fff}
+table.cart td{border-bottom:1px solid var(--line);padding:10px;vertical-align:middle}
+table.cart img{width:56px;height:56px;object-fit:contain}
+table.cart input{width:56px;font:inherit;padding:4px}
+.sum{max-width:360px;margin-left:auto;margin-top:20px}
+.sum div{display:flex;justify-content:space-between;padding:4px 0}
+.sum .tot{font-weight:700;font-size:19px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+form.co{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+form.co label{display:flex;flex-direction:column;font-size:14px;color:var(--muted);gap:4px}
+form.co label.w{grid-column:1/-1}
+form.co input,form.co select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--ink)}
+.err{background:#fdecec;border:1px solid #f2b8b8;color:#8a1f1f;border-radius:10px;padding:14px 18px;margin-top:16px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes r{to{transform:rotate(360deg)}}
 :root{--ink:#14213d;--muted:#5b6475;--line:#e3e6ec;--bg:#f7f8fa;--card:#fff;--accent:#e07a1f;--accent-d:#b8600f}
 *{box-sizing:border-box}
 body{margin:0;display:flex;flex-direction:column;min-height:100vh;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg)}
@@ -112,21 +139,24 @@ def page(title, active, body, desc):
 <title>{esc(title)}</title><meta name="description" content="{esc(desc)}">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2314213d'/><text x='50' y='70' font-size='62' text-anchor='middle' fill='%23e07a1f' font-family='Arial' font-weight='bold'>L</text></svg>">
 <link rel="stylesheet" href="style.css"></head><body>
-<header><div class="wrap"><a class="logo" href="index.html">Llamaxy<span>.</span></a><nav>{nav}</nav></div></header>
+<header><div class="wrap"><a class="logo" href="index.html">Llamaxy<span>.</span></a><nav>{nav}<a class="bk" href="basket.html">Basket<i id="bkn">0</i></a></nav></div></header>
 {body}
 <footer><div class="wrap">
 <div><b>{CO['name']}</b><br>Registered in England &amp; Wales<br>Company No. {CO['crn']}<br>VAT No. {CO['vat']}</div>
 <div><b>Office address</b><br>{esc(CO['address'])}</div>
 <div><b>Contact</b><br>Trade: <a href="mailto:{CO['trade']}">{CO['trade']}</a><br><a href="mailto:{CO['email']}">{CO['email']}</a></div>
 </div><div class="wrap" style="display:block;margin-top:24px">© {DATA['updated'][:4]} {CO['name']}. · <a href="privacy.html">Privacy</a></div></footer>
-</body></html>"""
+<script src="shop.js"></script></body></html>"""
 
 
 def card(p):
     return (f'<div class="card" data-c="{esc(p["cat"])}" data-b="{esc(p["brand"])}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">'
             f'<div class="img"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></div>'
             f'<div class="t"><div class="b">{esc(p["brand"])}</div><div class="n">{esc(p["title"])}</div>'
-            f'<a class="buy" href="https://www.amazon.co.uk/dp/{esc(p["asin"])}?m=A2RPHAYSIURSVS" rel="noopener" target="_blank">Buy</a>'
+            + (f'<div class="price">£{p["price"]:.2f}</div><button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" '
+               f'data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
+               if p["price"] else '<div class="price" style="color:var(--muted);font-size:14px">Out of stock</div><button class="buy off" disabled>Add to basket</button>')
+            + 
             '</div></div>')
 
 
@@ -135,6 +165,7 @@ def build():
         shutil.rmtree(SITE)
     SITE.mkdir()
     (SITE / "style.css").write_text(CSS)
+    shutil.copy(ROOT / "tools/shop.js", SITE / "shop.js")
     (SITE / "CNAME").write_text("llamaxy.com\n")
     (SITE / ".nojekyll").write_text("")
 
@@ -252,7 +283,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <div class="box"><h3>Trade enquiries</h3><p>Purchasing: <a href="mailto:{CO['trade']}">{CO['trade']}</a></p><p>General: <a href="mailto:{CO['email']}">{CO['email']}</a></p>
 <p style="margin-top:12px">Please include your company name, brands/price list and minimum order requirements. We reply within one business day.</p></div>
 <div class="box"><h3>Office address</h3><p>{CO['name']}<br>{esc(CO['address']).replace(', ', '<br>')}</p></div>
-<div class="box"><h3>Customers</h3><p>For an existing order, please contact us through the platform you ordered on (Your Orders → Contact seller).</p></div>
+<div class="box"><h3>Customers</h3><p>Questions about an order or delivery: <a href="mailto:{CO['email']}">{CO['email']}</a>. Please include your order details.</p></div>
 </div></div></section>"""
     (SITE / "contact.html").write_text(page(f"Contact — {CO['name']}", "contact.html", contact,
                                              "Contact Llamaxy Limited for trade enquiries."))
@@ -260,7 +291,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 <h2>Privacy policy</h2><p class="sub">Last updated: 9 October 2026</p>
 <div class="box">
 <h3>Who we are</h3><p>{CO['name']}, {esc(CO['address'])}. Contact: <a href="mailto:{CO['email']}">{CO['email']}</a>.</p>
-<h3 style="margin-top:16px">This website</h3><p>This website does not use cookies, analytics or contact forms and does not collect personal data from visitors.</p>
+<h3 style="margin-top:16px">This website</h3><p>This website does not use cookies or analytics. Your basket and the delivery details you type at checkout are kept only in your own browser and are not sent to us unless an order is completed.</p>
 <h3 style="margin-top:16px">Our internal tools and Google data</h3><p>We run a private, internal business tool used only by our own staff. With the account owner's consent it reads our own company Gmail mailboxes (Google OAuth) to find supplier invoices, delivery updates and replies to our business emails. This data is used only for running our own business, is stored on our own secured server, is never sold or shared with third parties, and is not used for advertising or to train AI models. Access can be revoked at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
 <p style="margin-top:12px">Our use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
 <h3 style="margin-top:16px">Customers</h3><p>Orders are handled under the privacy notice of the platform the order was placed on. We only use order details to fulfil and support those orders.</p>
@@ -268,6 +299,24 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 </div></div></section>"""
     (SITE / "privacy.html").write_text(page(f"Privacy — {CO['name']}", "privacy.html", privacy,
                                              "Privacy policy of Llamaxy Limited."))
+    nostock = '<p class="sub">Delivery to UK addresses only. Standard delivery £3.99, free on orders over £40. Dispatched within 1–2 working days from our UK fulfilment centre.</p>'
+    basket = f"""<section><div class="wrap">
+<h2>Your basket</h2>{nostock}
+<div id="cart"></div></div></section>"""
+    (SITE / "basket.html").write_text(page(f"Basket — {CO['name']}", "basket.html", basket, "Your basket."))
+    checkout = f"""<section><div class="wrap" style="max-width:760px">
+<h2>Checkout</h2>{nostock}
+<div class="box"><form class="co" id="co">
+<label class="w">Email<input type="email" required autocomplete="email"></label>
+<label>First name<input required autocomplete="given-name"></label><label>Last name<input required autocomplete="family-name"></label>
+<label class="w">Address<input required autocomplete="address-line1"></label>
+<label class="w">Address line 2 (optional)<input autocomplete="address-line2"></label>
+<label>Town / city<input required autocomplete="address-level2"></label><label>Postcode<input required autocomplete="postal-code" pattern="[A-Za-z]{{1,2}}[0-9][0-9A-Za-z]? ?[0-9][A-Za-z]{{2}}" title="UK postcode"></label>
+<label>Phone<input type="tel" required autocomplete="tel"></label><label>Country<select><option>United Kingdom</option></select></label>
+<div class="w" style="grid-column:1/-1"><div id="osum"></div></div>
+<button class="btn" style="grid-column:1/-1;border:0;font:inherit;font-weight:600;cursor:pointer" id="pay">Continue to secure payment</button>
+</form><div id="perr"></div></div></div></section>"""
+    (SITE / "checkout.html").write_text(page(f"Checkout — {CO['name']}", "checkout.html", checkout, "Checkout."))
     print(f"site/ olusturuldu: {n} urun, {len(brands)} marka")
 
 

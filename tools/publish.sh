@@ -1,11 +1,11 @@
-#!/bin/zsh
+#!/bin/bash
 # Urunleri Amazon'dan cek, siteyi uret, GitHub Pages'e yukle
 # Kullanim: tools/publish.sh            (urunleri de gunceller)
 #           tools/publish.sh --no-fetch (sadece site degisikligi)
 set -e
 cd "$(dirname "$0")/.."
 export PATH=~/.local/bin:$PATH
-[[ "$1" == "--no-fetch" ]] || python3 tools/fetch_products.py
+[[ "$1" == "--no-fetch" || ! -d ~/scripts/urun_arastirici ]] || python3 tools/fetch_products.py
 python3 tools/build.py
 git add -A
 git commit -qm "Update site $(date +%F)" || true
