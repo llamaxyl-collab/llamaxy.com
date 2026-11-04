@@ -18,7 +18,7 @@ CO = {
     "address": "122 Hawkins Road, Cambridge, CB4 2RD, United Kingdom",
     "crn": "13143085",
     "vat": "GB435877456",
-    "eori": "GB078550584000",
+    "eori": "GB435877456000",
     "director": "Abdullah Dönmez",
 }
 
