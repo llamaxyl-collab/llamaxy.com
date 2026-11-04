@@ -2,6 +2,7 @@
 Kullanim: python3 tools/build.py
 """
 import html, json, math, shutil, sqlite3
+from urllib.request import Request, urlopen
 from collections import Counter
 from pathlib import Path
 
@@ -36,16 +37,25 @@ for p in products:
     p["cat"] = CAT.get(p["category"], "Other")
 # Sitede sadece oyuncaklar (Apo 10 Eki 2026)
 products = [p for p in products if p["cat"] == "Toys & Games"]
-# Site fiyati = Amazon FBA fiyatimizin %10 ustu, .99'a yuvarli; FBA stogu yoksa "Out of stock" (Apo 4 Kas 2026)
+# Site fiyati = Amazon FBA fiyatimizin %15 ustu, .99'a yuvarli; FBA stogu yoksa "Out of stock" (Apo 4 Kas 2026)
 _db = sqlite3.connect("file:" + str(Path.home() / "src/data/app.db") + "?mode=ro", uri=True)
 AMZ = dict(_db.execute("select asin, max(price) from listings where fulfillment_channel like 'AMAZON%' "
                        "and quantity > 0 and status = 'Active' group by asin"))
+IMG = ROOT / "data/img"
+IMG.mkdir(parents=True, exist_ok=True)
 for p in products:
+    f = IMG / (p["asin"] + ".jpg")
+    if not f.exists() and p["image"]:
+        try:
+            f.write_bytes(urlopen(Request(p["image"], headers={"User-Agent": "Mozilla/5.0"}), timeout=30).read())
+        except Exception as e:
+            print("gorsel inmedi", p["asin"], e)
+    p["image"] = "img/" + f.name if f.exists() else ""
     a = AMZ.get(p["asin"])
-    p["price"] = math.ceil(a * 1.10) - 0.01 if a else None
+    p["price"] = math.ceil(a * 1.15) - 0.01 if a else None
 cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
-products.sort(key=lambda p: (p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
+products.sort(key=lambda p: (p["price"] is None, p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
 brands = Counter(p["brand"] for p in products if p["brand"])
 # Ana sayfada sadece tanınan oyuncak/koleksiyon markaları (rastgele ev/giyim markaları güven vermiyor)
 SHOW_BRANDS = ["Squishmallows", "Schleich", "Funko", "Mattel", "Hasbro", "Hot Wheels", "Barbie", "Nerf",
@@ -166,38 +176,40 @@ def build():
     SITE.mkdir()
     (SITE / "style.css").write_text(CSS)
     shutil.copy(ROOT / "tools/shop.js", SITE / "shop.js")
+    shutil.copytree(ROOT / "data/img", SITE / "img")
     (SITE / "CNAME").write_text("llamaxy.com\n")
     (SITE / ".nojekyll").write_text("")
 
     n = len(products)
-    featured = [p for p in products if p["cat"] == "Toys & Games"][::max(1, cats["Toys & Games"] // 10)][:10]
+    instock = [p for p in products if p["price"]]
+    featured = instock[::max(1, len(instock) // 10)][:10]
     home = f"""
 <div class="hero"><div class="wrap">
-<h1>UK importer and retailer of branded toys, games and collectibles</h1>
-<p>{CO['name']} is a VAT-registered company in Cambridge. We buy genuine branded stock from authorised distributors across Europe, import it into the United Kingdom under our own EORI number and sell it to consumers in the UK.</p>
-<a class="btn" href="suppliers.html">For suppliers</a><a class="btn ghost" href="products.html">View our range</a>
+<h1>Genuine branded toys, games and collectibles</h1>
+<p>Shop {n}+ original toys from the brands kids love — Squishmallows, Schleich, Funko, Hot Wheels, Barbie and more. Brand-new, sealed stock, dispatched fast from the UK.</p>
+<a class="btn" href="products.html">Shop now</a><a class="btn ghost" href="suppliers.html">Trade &amp; suppliers</a>
 </div></div>
 <div class="wrap"><div class="stats">
-<div class="stat"><b>{n}+</b><span>Products currently listed</span></div>
-<div class="stat"><b>{len(brands)}</b><span>Brands in our catalogue</span></div>
-<div class="stat"><b>UK only</b><span>We sell to UK end consumers</span></div>
-<div class="stat"><b>Since 2021</b><span>UK limited company</span></div>
+<div class="stat"><b>Free delivery</b><span>On UK orders over £40</span></div>
+<div class="stat"><b>1–2 days</b><span>Dispatched within 1–2 working days</span></div>
+<div class="stat"><b>14-day returns</b><span>Change your mind? Send it back</span></div>
+<div class="stat"><b>100% genuine</b><span>New, sealed, from authorised distributors</span></div>
 </div></div>
 <section><div class="wrap">
-<h2>What we do</h2><p class="sub">We buy from authorised sources and sell to end consumers in the UK.</p>
+<h2>Why shop with Llamaxy</h2><p class="sub">A UK toy retailer and importer, trading since 2021.</p>
 <div class="cols">
-<div class="box"><h3>Import &amp; purchasing</h3><p>We buy brand-new stock from authorised distributors in the EU and UK in carton and pallet quantities, pay by bank transfer and arrange collection, freight and UK customs clearance ourselves.</p></div>
-<div class="box"><h3>UK retail</h3><p>We sell online to consumers across the United Kingdom, with stock held in UK fulfilment centres for fast delivery and full customer service.</p></div>
-<div class="box"><h3>Brand-safe selling</h3><p>Only new, original products with correct EAN barcodes. We follow manufacturer pricing and brand guidelines, never resell to other traders and comply with UK product safety rules.</p></div>
+<div class="box"><h3>Only original products</h3><p>Everything we sell is brand-new and bought from authorised distributors in the UK and Europe. No copies, no grey-market fakes.</p></div>
+<div class="box"><h3>Fast UK delivery</h3><p>Orders are packed in our UK fulfilment centre and dispatched within 1–2 working days with tracking.</p></div>
+<div class="box"><h3>Secure checkout</h3><p>Pay safely by card, Apple Pay or Google Pay. We never see or store your card details.</p></div>
 </div></div></section>
 <section style="background:#fff;border-block:1px solid var(--line)"><div class="wrap">
 <h2>Brands we carry</h2><p class="sub">A selection of brands currently in our catalogue.</p>
 <div class="chips">{''.join(f'<span class="chip">{esc(b)}</span>' for b in top_brands)}</div>
 </div></section>
 <section><div class="wrap">
-<h2>Categories</h2><p class="sub">Toys, games and collectibles.</p>
+<h2>Shop by category</h2><p class="sub">Toys, games and collectibles.</p>
 <div class="chips">{''.join(f'<a class="chip" style="text-decoration:none" href="products.html#{esc(c)}">{esc(c)} · {k}</a>' for c, k in cats.most_common() if c != "Other")}</div>
-<h2 style="margin-top:48px">Selected products</h2><p class="sub"><a href="products.html">See all {n} products →</a></p>
+<h2 style="margin-top:48px">Popular right now</h2><p class="sub"><a href="products.html">See all {n} products →</a></p>
 <div class="grid">{''.join(card(p) for p in featured)}</div>
 </div></section>"""
     sup = f"""<div class="hero"><div class="wrap">
@@ -234,13 +246,13 @@ def build():
     (SITE / "suppliers.html").write_text(page(f"For suppliers — {CO['name']}", "suppliers.html", sup,
                                                "Trade account information for distributors and wholesalers supplying Llamaxy Limited."))
 
-    (SITE / "index.html").write_text(page(f"{CO['name']} — UK Importer & Retailer of Toys", "index.html", home,
+    (SITE / "index.html").write_text(page(f"{CO['name']} — Genuine Branded Toys, UK Delivery", "index.html", home,
                                           "Llamaxy Limited is a UK importer and retailer of branded toys, games and collectibles."))
 
     opts_c = "".join(f'<option>{esc(c)}</option>' for c, _ in cats.most_common())
     opts_b = "".join(f'<option>{esc(b)}</option>' for b in sorted(brands, key=str.lower))
     prod = f"""<section><div class="wrap">
-<h2>Our product range</h2><p class="sub">Toys, games and collectibles currently in stock. Updated {DATA['updated']}.</p>
+<h2>Shop all toys</h2><p class="sub">Genuine branded toys, games and collectibles. Free UK delivery over £40.</p>
 <div class="filters"><input id="q" type="search" placeholder="Search product or brand">
 <select id="c"><option value="">All categories</option>{opts_c}</select>
 <select id="b"><option value="">All brands</option>{opts_b}</select></div>
@@ -299,7 +311,7 @@ const h=decodeURIComponent(location.hash.slice(1));if(h&&[...c.options].some(o=>
 </div></div></section>"""
     (SITE / "privacy.html").write_text(page(f"Privacy — {CO['name']}", "privacy.html", privacy,
                                              "Privacy policy of Llamaxy Limited."))
-    nostock = '<p class="sub">Delivery to UK addresses only. Standard delivery £3.99, free on orders over £40. Dispatched within 1–2 working days from our UK fulfilment centre.</p>'
+    nostock = '<p class="sub">Maximum 3 of each item per order — for larger quantities please <a href="contact.html">contact us</a>. Delivery to UK addresses only. Standard delivery £3.99, free on orders over £40. Dispatched within 1–2 working days from our UK fulfilment centre.</p>'
     basket = f"""<section><div class="wrap">
 <h2>Your basket</h2>{nostock}
 <div id="cart"></div></div></section>"""
