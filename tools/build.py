@@ -177,6 +177,7 @@ table.cart{width:100%;border-collapse:collapse;background:#fff}
 table.cart td{border-bottom:1px solid var(--line);padding:10px;vertical-align:middle}
 table.cart img{width:64px;height:64px;object-fit:contain}
 table.cart input{width:56px;font:inherit;padding:4px}
+.qb{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);background:#fff;font:700 18px Fredoka,sans-serif;cursor:pointer;line-height:1}.qb:hover{border-color:var(--blue);color:var(--blue)}
 .sum{max-width:360px;margin-left:auto;margin-top:20px}
 .sum div{display:flex;justify-content:space-between;padding:4px 0}
 .sum .tot{font-weight:700;font-size:20px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
@@ -448,7 +449,7 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 </div></div></section>"""
     (SITE / "privacy.html").write_text(page(f"Privacy — {CO['name']}", "privacy.html", privacy,
                                              "Privacy policy of Llamaxy Limited."))
-    nostock = '<p class="sub">Maximum 3 of each item per order — for larger quantities please <a href="contact.html">contact us</a>. Delivery to UK addresses only. Standard delivery £3.99, free on orders over £40. Dispatched within 1–2 working days from our UK fulfilment centre.</p>'
+    nostock = '<p class="sub">Maximum 3 of each item per customer — for larger quantities please <a href="contact.html">contact us</a>. Delivery to UK addresses only. Standard delivery £3.99, free on orders over £40. Dispatched within 1–2 working days from our UK fulfilment centre.</p>'
     basket = f"""<section><div class="wrap">
 <h2>Your basket</h2>{nostock}
 <div id="cart"></div></div></section>"""
@@ -457,7 +458,8 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <h2>Checkout</h2>{nostock}
 <div class="box"><form class="co" id="co">
 <div class="w" style="grid-column:1/-1"><div id="osum"></div></div>
-<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">You will enter your email and delivery address on the next, secure payment page (Stripe). By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
+<label class="w">Your email (for order and delivery updates)<input id="em" type="email" required autocomplete="email" placeholder="you@example.com"></label>
+<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">You will enter your delivery address and pay on the next, secure payment page (Stripe). Up to 3 of each item per customer. By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
 <button class="btn" style="grid-column:1/-1;border:0;font:inherit;font-weight:600;cursor:pointer" id="pay">Continue to secure payment</button>
 </form><div id="perr"></div></div></div></section>"""
     (SITE / "checkout.html").write_text(page(f"Checkout — {CO['name']}", "checkout.html", checkout, "Checkout."))
