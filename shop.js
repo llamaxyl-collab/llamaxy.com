@@ -21,7 +21,7 @@ function checkout(){const f=$('#co');if(!f)return;const b=get();
   f.onsubmit=e=>{e.preventDefault();const p=$('#pay'),em=($('#em')||{}).value||'';p.disabled=true;p.innerHTML='<span class="spin"></span>Connecting to secure payment…';$('#perr').innerHTML='';
     const fail=m=>{p.disabled=false;p.textContent='Try again';$('#perr').innerHTML='<div class="err"><b>Payment could not be started.</b><br>'+m+'</div>'};
     // Live payments open (Apo 5 Nov 2026 "ödeme kısmını da yapalım"); the hidden preview still pays with Stripe TEST cards
-    fetch(API,{method:'POST',body:JSON.stringify({test:window.LLX_TEST?1:0,email:em.trim(),base:location.href.replace(/[^/]*$/,''),items:b.map(x=>({a:x.a,q:x.q}))})})
+    fetch(API,{method:'POST',body:JSON.stringify({test:window.LLX_TEST?1:0,email:em.trim(),addr:{n:$('#an').value.trim(),l1:$('#a1').value.trim(),l2:$('#a2').value.trim(),c:$('#ac').value.trim(),pc:$('#ap').value.trim().toUpperCase()},base:location.href.replace(/[^/]*$/,''),items:b.map(x=>({a:x.a,q:x.q}))})})
       .then(r=>r.json()).then(j=>j.url?location.href=j.url:fail(j.error)).catch(()=>fail('Please check your connection and try again. You have not been charged.'))}}
 if($('#thanks'))localStorage.removeItem(K);
 badge();cart();checkout();
