@@ -67,6 +67,8 @@ for p in products:
     p["qty"] = QTY.get(p["asin"]) or 0
     t = (p["title"] + " " + p["brand"]).lower()
     p["type"] = next((n for n, _, r in TYPES if re.search(r, t)), "More toys")
+# Stoksuz urun sitede hic gorunmez (Apo 5 Kas 2026: "stoksuz urun neden gorunsun ki")
+products = [p for p in products if p["price"] and p["qty"] > 0]
 # Urun sayfalari (Apo 5 Kas 2026: "urunlerin icine girip ozelliklerine bakilmiyor mu") — tools/fetch_details.py
 _det = ROOT / "data/details.json"
 DET = json.loads(_det.read_text()) if _det.exists() else {}
@@ -246,13 +248,13 @@ def card(p):
     return (f'<div class="card" data-c="{esc(p["type"])}" data-b="{esc(p["brand"])}" data-p="{p["price"] or 0}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">{badge}'
             f'<a class="img" href="{p["url"]}"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></a>'
             f'<div class="t"><div class="b">{esc(p["brand"])}</div><a class="n" href="{p["url"]}">{esc(p["title"])}</a>'
-            + (f'<div class="price">£{p["price"]:.2f}</div><button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" '
+            + (f'<div class="price">£{p["price"]:.2f}</div><button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" data-m="{min(p["qty"], 3)}" '
                f'data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
                if p["price"] else '<div class="price" style="color:var(--muted);font-size:16px">Out of stock</div><button class="buy off" disabled>Add to basket</button>')
             + '</div></div>')
 
 def buy_button(p):
-    return (f'<button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
+    return (f'<button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" data-m="{min(p["qty"], 3)}" data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
             if p["price"] else '<button class="buy off" disabled>Out of stock</button>')
 
 
@@ -499,7 +501,7 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
         rel = [r for r in instock if r["type"] == p["type"] and r["asin"] != p["asin"]][:4]
         (SITE / p["url"]).write_text(product_page(p, rel))
     # Checkout endpoint reads prices and stock from here, never from the browser (Apo 4 Kas 2026)
-    (SITE / "prices.json").write_text(json.dumps({p["asin"]: {"p": p["price"], "t": p["title"][:120], "i": p["image"]} for p in products if p["price"]}))
+    (SITE / "prices.json").write_text(json.dumps({p["asin"]: {"p": p["price"], "m": min(p["qty"], 3), "t": p["title"][:120], "i": p["image"]} for p in products if p["price"]}))
     # Hidden preview with Stripe TEST payments until Apo approves (noindex, not linked anywhere)
     pv = SITE / PREVIEW
     pv.mkdir()

@@ -20,6 +20,7 @@ export default {
       const p = prices[x.a], q = Number(x.q)
       if (!p) return out({ error: 'Sorry, an item in your basket has just sold out. Please remove it and try again.' }, 409)
       if (!Number.isInteger(q) || q < 1 || q > 3) return out({ error: 'Maximum 3 of each item per order.' }, 400)
+      if (p.m && q > p.m) return out({ error: `Sorry, only ${p.m} of “${p.t.slice(0, 60)}” left in stock. Please lower the quantity in your basket.` }, 409)
       lines.push({ a: x.a, q, p: p.p, t: p.t, i: p.i })
     }
     // Max 3 of each item per customer over 30 days (Apo 5 Nov 2026), by the email given before payment;
@@ -50,10 +51,11 @@ export default {
     for (const x of lines) if ((had[x.a] ?? 0) + x.q > 3)
       return out({ error: `You can buy up to 3 of each item${had[x.a] ? ` — you have already ordered ${had[x.a]} of “${x.t.slice(0, 60)}” recently` : ''}. Want more? Please contact us at info@llamaxy.com.` }, 409)
     // Before payment, our server asks Amazon: stock for every item + will it deliver to this address (Apo 5 Nov 2026:
-    // "ödeme alıp iade etmeyelim, öncesinde kontrol edelim"). Server down / slow = let the order through; the order
-    // loop still refunds if Amazon refuses later.
+    // "ödeme alıp iade etmeyelim, öncesinde kontrol edelim"). No answer (server down / slow) = no payment page
+    // either (Apo 5 Nov 2026: "sunucu kapalıysa ödeme alınmasın, sonra tekrar dene desin").
     const chk = await fetch('https://apozone-ebay.taildd5476.ts.net/shop/check', { method: 'POST', headers: { 'content-type': 'application/json', 'x-shop-secret': env.SHOP_CHECK || '' }, body: JSON.stringify({ items: lines.map((x) => ({ a: x.a, q: x.q })), addr: ad }), signal: AbortSignal.timeout(12000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
-    if (chk && chk.ok === false) {
+    if (!chk) return out({ error: 'Sorry, we could not check stock just now. Please try again in a few minutes. You have not been charged.' }, 503)
+    if (chk.ok === false) {
       const t = lines.find((x) => x.a === chk.asin)?.t
       return out({ error: chk.reason === 'stock' ? `Sorry, “${(t || 'an item in your basket').slice(0, 60)}” has just sold out. Please remove it and try again. You have not been charged.` : 'Sorry, we cannot deliver to this address. Please check it, or contact us at info@llamaxy.com. You have not been charged.' }, 409)
     }
