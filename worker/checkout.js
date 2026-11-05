@@ -49,6 +49,14 @@ export default {
     }
     for (const x of lines) if ((had[x.a] ?? 0) + x.q > 3)
       return out({ error: `You can buy up to 3 of each item${had[x.a] ? ` — you have already ordered ${had[x.a]} of “${x.t.slice(0, 60)}” recently` : ''}. Want more? Please contact us at info@llamaxy.com.` }, 409)
+    // Before payment, our server asks Amazon: stock for every item + will it deliver to this address (Apo 5 Nov 2026:
+    // "ödeme alıp iade etmeyelim, öncesinde kontrol edelim"). Server down / slow = let the order through; the order
+    // loop still refunds if Amazon refuses later.
+    const chk = await fetch('https://apozone-ebay.taildd5476.ts.net/shop/check', { method: 'POST', headers: { 'content-type': 'application/json', 'x-shop-secret': env.SHOP_CHECK || '' }, body: JSON.stringify({ items: lines.map((x) => ({ a: x.a, q: x.q })), addr: ad }), signal: AbortSignal.timeout(12000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    if (chk && chk.ok === false) {
+      const t = lines.find((x) => x.a === chk.asin)?.t
+      return out({ error: chk.reason === 'stock' ? `Sorry, “${(t || 'an item in your basket').slice(0, 60)}” has just sold out. Please remove it and try again. You have not been charged.` : 'Sorry, we cannot deliver to this address. Please check it, or contact us at info@llamaxy.com. You have not been charged.' }, 409)
+    }
     const sub = lines.reduce((n, x) => n + x.p * x.q, 0)
     const f = {
       mode: 'payment', locale: 'en-GB', customer_email: mail, 'adaptive_pricing[enabled]': 'false', // always GBP (4 Nov: OVH FR IP showed EUR +4% fee)
