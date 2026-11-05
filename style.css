@@ -91,6 +91,7 @@ table.cart{width:100%;border-collapse:collapse;background:#fff}
 table.cart td{border-bottom:1px solid var(--line);padding:10px;vertical-align:middle}
 table.cart img{width:64px;height:64px;object-fit:contain}
 table.cart input{width:56px;font:inherit;padding:4px}
+.qb{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);background:#fff;font:700 18px Fredoka,sans-serif;cursor:pointer;line-height:1}.qb:hover{border-color:var(--blue);color:var(--blue)}
 .sum{max-width:360px;margin-left:auto;margin-top:20px}
 .sum div{display:flex;justify-content:space-between;padding:4px 0}
 .sum .tot{font-weight:700;font-size:20px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
