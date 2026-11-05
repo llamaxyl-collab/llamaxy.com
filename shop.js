@@ -2,19 +2,21 @@
 const K='llx_basket',$=s=>document.querySelector(s);
 const get=()=>JSON.parse(localStorage.getItem(K)||'[]'),put=b=>{localStorage.setItem(K,JSON.stringify(b));badge()};
 const API='https://llamaxy-checkout.llxpay.workers.dev',MAX=3,MORE='Want more than 3? Please contact us at info@llamaxy.com';
+// most per item = our stock, up to 3 (Apo 5 Nov 2026)
+const lim=x=>Math.min(x.m||MAX,MAX),LEFT=x=>lim(x)<MAX?`Sorry, only ${lim(x)} left in stock`:MORE;
 const gbp=n=>'£'+n.toFixed(2);
 function badge(){const e=$('#bkn');if(e)e.textContent=get().reduce((n,x)=>n+x.q,0)}
 function totals(b){const sub=b.reduce((n,x)=>n+x.p*x.q,0),del=sub>=40||!sub?0:3.99;return{sub,del,tot:sub+del}}
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2600)}
 document.addEventListener('click',e=>{const b=e.target.closest('button.buy[data-a]');if(!b)return;
-  const s=get(),x=s.find(i=>i.a===b.dataset.a);if(x&&x.q>=MAX){toast(MORE);return}if(x)x.q++;else s.push({a:b.dataset.a,p:+b.dataset.p,t:b.dataset.t,i:b.dataset.i,q:1});put(s);toast('Added to basket')});
+  const s=get(),x=s.find(i=>i.a===b.dataset.a),m=+b.dataset.m||MAX;if(x){x.m=m;if(x.q>=lim(x)){toast(LEFT(x));return}x.q++}else s.push({a:b.dataset.a,p:+b.dataset.p,t:b.dataset.t,i:b.dataset.i,m,q:1});put(s);toast('Added to basket')});
 function sumHtml(b){const t=totals(b);return `<div class="sum"><div><span>Subtotal</span><span>${gbp(t.sub)}</span></div><div><span>Delivery</span><span>${t.del?gbp(t.del):'Free'}</span></div><div class="tot"><span>Total (incl. VAT)</span><span>${gbp(t.tot)}</span></div></div>`}
 function cart(){const c=$('#cart');if(!c)return;const b=get();
   if(!b.length){c.innerHTML='<p>Your basket is empty. <a href="products.html">Browse products →</a></p>';return}
   c.innerHTML='<table class="cart">'+b.map((x,i)=>`<tr><td><img src="${window.LLX_TEST?"../":""}${x.i}" alt=""></td><td>${x.t}</td><td style="white-space:nowrap"><button class="qb" data-i="${i}" data-d="-1" aria-label="One less">−</button><b style="display:inline-block;min-width:24px;text-align:center">${x.q}</b><button class="qb" data-i="${i}" data-d="1" aria-label="One more">+</button></td><td style="text-align:right;white-space:nowrap">${gbp(x.p*x.q)}</td></tr>`).join('')+'</table>'
     +`<p style="font-size:13px;color:var(--muted)">${MORE.replace('info@llamaxy.com','<a href="contact.html">info@llamaxy.com</a>')}</p>`+sumHtml(b)+'<div style="text-align:right;margin-top:16px"><a class="btn" href="checkout.html">Checkout</a></div>';
   // − / + per line; + past 3 asks them to contact us (Apo 5 Nov 2026)
-  c.querySelectorAll('button.qb').forEach(n=>n.onclick=()=>{const s=get(),x=s[n.dataset.i],q=x.q+(+n.dataset.d);if(q>MAX){toast(MORE);return}if(q>0)x.q=q;else s.splice(n.dataset.i,1);put(s);cart()})}
+  c.querySelectorAll('button.qb').forEach(n=>n.onclick=()=>{const s=get(),x=s[n.dataset.i],q=x.q+(+n.dataset.d);if(q>lim(x)){toast(LEFT(x));return}if(q>0)x.q=q;else s.splice(n.dataset.i,1);put(s);cart()})}
 function checkout(){const f=$('#co');if(!f)return;const b=get();
   if(!b.length){location.href='basket.html';return}
   $('#osum').innerHTML=`<b>${b.reduce((n,x)=>n+x.q,0)} item(s)</b>`+sumHtml(b);
