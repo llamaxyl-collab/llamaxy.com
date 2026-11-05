@@ -67,6 +67,11 @@ for p in products:
     p["qty"] = QTY.get(p["asin"]) or 0
     t = (p["title"] + " " + p["brand"]).lower()
     p["type"] = next((n for n, _, r in TYPES if re.search(r, t)), "More toys")
+# Urun sayfalari (Apo 5 Kas 2026: "urunlerin icine girip ozelliklerine bakilmiyor mu") — tools/fetch_details.py
+_det = ROOT / "data/details.json"
+DET = json.loads(_det.read_text()) if _det.exists() else {}
+for p in products:
+    p["url"] = "p/" + (re.sub(r"[^a-z0-9]+", "-", p["title"].lower())[:60].strip("-") or "toy") + "-" + p["asin"].lower() + ".html"
 cats = Counter(p["cat"] for p in products)
 cat_rank = {c: i for i, (c, _) in enumerate(cats.most_common())}
 products.sort(key=lambda p: (p["price"] is None, p["cat"] == "Other", cat_rank[p["cat"]], p["brand"].lower(), p["title"].lower()))
@@ -182,6 +187,23 @@ form.co input,form.co select{font:inherit;padding:10px 12px;border:2px solid var
 .err{background:#fdecec;border:1px solid #f2b8b8;color:#8a1f1f;border-radius:14px;padding:14px 18px;margin-top:16px}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-3px;margin-right:8px}
 @keyframes r{to{transform:rotate(360deg)}}
+.card a.img,.card a.n{text-decoration:none;color:inherit}
+.card a.n:hover{color:var(--blue)}
+.crumbs{font-size:14px;color:var(--muted);margin:0 0 18px}.crumbs a{text-decoration:none;color:var(--blue)}
+.pd{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
+.gal .main{aspect-ratio:1;background:#fff;border:2px solid var(--line);border-radius:22px;display:flex;align-items:center;justify-content:center;padding:24px}
+.gal .main img{max-width:100%;max-height:100%;object-fit:contain}
+.thumbs{display:flex;gap:10px;margin-top:12px;overflow-x:auto}
+.thumbs img{width:72px;height:72px;object-fit:contain;border:2px solid var(--line);border-radius:12px;padding:4px;background:#fff;cursor:pointer;flex:none}
+.thumbs img:hover{border-color:var(--blue)}
+.info .b{font-size:13px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.info h1{font-size:clamp(24px,3vw,32px);line-height:1.15;margin:4px 0 12px}
+.info .price{font-size:34px;margin:0 8px 0 0;display:inline-block}
+.info .buy{max-width:320px;margin-top:16px;font-size:18px;padding:13px 0}
+.perks{list-style:none;padding:0;margin:18px 0;color:var(--muted);font-size:14px;line-height:1.9}
+.info h3{margin:22px 0 6px}
+.feats{padding-left:20px;margin:0;line-height:1.6}.feats li{margin-bottom:6px}
+@media(max-width:800px){.pd{grid-template-columns:1fr;gap:20px}}
 footer{margin-top:auto;background:var(--ink);color:#b9bfd6;padding-block:44px 28px;font-size:14px}
 footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
 footer b{color:#fff;font:600 17px Fredoka,sans-serif;display:block;margin-bottom:8px}
@@ -221,12 +243,50 @@ def card(p):
     if p["price"] and p["qty"] <= 3:
         badge = f'<span class="badge">Only {p["qty"]} left</span>'
     return (f'<div class="card" data-c="{esc(p["type"])}" data-b="{esc(p["brand"])}" data-p="{p["price"] or 0}" data-s="{esc((p["title"] + " " + p["brand"]).lower())}">{badge}'
-            f'<div class="img"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></div>'
-            f'<div class="t"><div class="b">{esc(p["brand"])}</div><div class="n">{esc(p["title"])}</div>'
+            f'<a class="img" href="{p["url"]}"><img loading="lazy" src="{esc(p["image"])}" alt="{esc(p["title"][:90])}"></a>'
+            f'<div class="t"><div class="b">{esc(p["brand"])}</div><a class="n" href="{p["url"]}">{esc(p["title"])}</a>'
             + (f'<div class="price">£{p["price"]:.2f}</div><button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" '
                f'data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
                if p["price"] else '<div class="price" style="color:var(--muted);font-size:16px">Out of stock</div><button class="buy off" disabled>Add to basket</button>')
             + '</div></div>')
+
+def buy_button(p):
+    return (f'<button class="buy" data-a="{esc(p["asin"])}" data-p="{p["price"]:.2f}" data-t="{esc(p["title"][:120])}" data-i="{esc(p["image"])}">Add to basket</button>'
+            if p["price"] else '<button class="buy off" disabled>Out of stock</button>')
+
+
+def product_page(p, related):
+    d = DET.get(p["asin"], {})
+    imgs = ([p["image"]] if p["image"] else []) + [u for u in d.get("images", [])[1:]]
+    thumbs = "".join(f'<img src="{esc(u)}" alt="" loading="lazy" onclick="document.getElementById(\'pm\').src=this.src">' for u in imgs) if len(imgs) > 1 else ""
+    stock = (f'<span class="badge" style="position:static">Only {p["qty"]} left</span>' if p["price"] and p["qty"] <= 3
+             else '<span class="badge g" style="position:static">In stock</span>' if p["price"] else "")
+    feats = "".join(f"<li>{esc(b)}</li>" for b in d.get("bullets", []))
+    spec = {"Brand": p["brand"], **d.get("spec", {})}
+    facts = "".join(f"<dt>{esc(k)}</dt><dd>{esc(v)}</dd>" for k, v in spec.items() if v)
+    desc = d.get("description", "")
+    ld = {"@context": "https://schema.org", "@type": "Product", "name": p["title"], "brand": {"@type": "Brand", "name": p["brand"]},
+          "image": ["https://llamaxy.com/" + u if u.startswith("img/") else u for u in imgs[:3]], "sku": p["asin"],
+          "description": (d.get("bullets") or [desc or p["title"]])[0][:300]}
+    if p["price"]:
+        ld["offers"] = {"@type": "Offer", "priceCurrency": "GBP", "price": f'{p["price"]:.2f}', "availability": "https://schema.org/InStock",
+                        "url": "https://llamaxy.com/" + p["url"], "seller": {"@type": "Organization", "name": CO["name"]}}
+    body = f"""<section style="padding-top:24px"><div class="wrap">
+<p class="crumbs"><a href="index.html">Home</a> › <a href="products.html#t={esc(p['type'])}">{esc(p['type'])}</a> › {esc(p['title'][:60])}</p>
+<div class="pd"><div class="gal"><div class="main"><img id="pm" src="{esc(imgs[0] if imgs else '')}" alt="{esc(p['title'][:90])}"></div><div class="thumbs">{thumbs}</div></div>
+<div class="info"><div class="b">{esc(p['brand'])}</div><h1>{esc(p['title'])}</h1>
+<div class="price">{f"£{p['price']:.2f}" if p['price'] else '<span style="color:var(--muted);font-size:18px">Out of stock</span>'}</div>{stock}
+{buy_button(p)}
+<ul class="perks"><li>🚚 Dispatched in 1–2 working days · free UK delivery over £40</li><li>↩️ 14-day returns</li><li>✅ Genuine, brand-new and sealed</li></ul>
+{f'<h3>Features</h3><ul class="feats">{feats}</ul>' if feats else ''}
+</div></div>
+{f'<div class="box" style="margin-top:28px"><h3>Description</h3><p style="color:var(--ink);white-space:pre-line">{esc(desc)}</p></div>' if desc else ''}
+<div class="box" style="margin-top:20px"><h3>Product details</h3><dl class="facts">{facts}</dl></div>
+{f'<h2 style="margin-top:44px">You may also like</h2><div class="grid" style="margin-top:20px">{"".join(card(r) for r in related)}</div>' if related else ''}
+</div></section><script type="application/ld+json">{json.dumps(ld, ensure_ascii=False).replace("</", "<\\/")}</script>"""
+    h = page(f"{p['title'][:70]} — Llamaxy", "products.html", body, (d.get("bullets") or [p["title"]])[0][:155])
+    return h.replace('<meta charset="utf-8">', '<meta charset="utf-8"><base href="../">', 1)
+
 
 def build():
     if SITE.exists():
@@ -426,16 +486,21 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <h2>Thank you for your order! 🎉</h2><p class="sub">Your payment went through. We have emailed your order confirmation, and we will send your tracking number as soon as the parcel leaves our warehouse (within 1–2 working days).</p>
 <p><a class="btn" href="products.html">Keep shopping</a></p></div></section>"""
     (SITE / "thanks.html").write_text(page(f"Thank you — {CO['name']}", "thanks.html", thanks, "Order received."))
+    (SITE / "p").mkdir()
+    for p in products:
+        rel = [r for r in instock if r["type"] == p["type"] and r["asin"] != p["asin"]][:4]
+        (SITE / p["url"]).write_text(product_page(p, rel))
     # Checkout endpoint reads prices and stock from here, never from the browser (Apo 4 Kas 2026)
     (SITE / "prices.json").write_text(json.dumps({p["asin"]: {"p": p["price"], "t": p["title"][:120], "i": p["image"]} for p in products if p["price"]}))
     # Hidden preview with Stripe TEST payments until Apo approves (noindex, not linked anywhere)
     pv = SITE / PREVIEW
     pv.mkdir()
-    for f in SITE.glob("*.html"):
+    (pv / "p").mkdir()
+    for f in [*SITE.glob("*.html"), *SITE.glob("p/*.html")]:
         h = f.read_text().replace('<meta charset="utf-8">', '<meta charset="utf-8"><meta name="robots" content="noindex">', 1)
         h = h.replace('src="img/', 'src="../img/').replace('<script src="shop.js">', '<script>window.LLX_TEST=1</script><script src="../shop.js">')
         h = h.replace('href="style.css"', 'href="../style.css"').replace('href="fredoka.woff2"', 'href="../fredoka.woff2"')
-        (pv / f.name).write_text(h)
+        (pv / f.relative_to(SITE)).write_text(h)
     print(f"site/ olusturuldu: {n} urun, {len(brands)} marka")
 
 

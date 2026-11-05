@@ -101,6 +101,23 @@ form.co input,form.co select{font:inherit;padding:10px 12px;border:2px solid var
 .err{background:#fdecec;border:1px solid #f2b8b8;color:#8a1f1f;border-radius:14px;padding:14px 18px;margin-top:16px}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-3px;margin-right:8px}
 @keyframes r{to{transform:rotate(360deg)}}
+.card a.img,.card a.n{text-decoration:none;color:inherit}
+.card a.n:hover{color:var(--blue)}
+.crumbs{font-size:14px;color:var(--muted);margin:0 0 18px}.crumbs a{text-decoration:none;color:var(--blue)}
+.pd{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
+.gal .main{aspect-ratio:1;background:#fff;border:2px solid var(--line);border-radius:22px;display:flex;align-items:center;justify-content:center;padding:24px}
+.gal .main img{max-width:100%;max-height:100%;object-fit:contain}
+.thumbs{display:flex;gap:10px;margin-top:12px;overflow-x:auto}
+.thumbs img{width:72px;height:72px;object-fit:contain;border:2px solid var(--line);border-radius:12px;padding:4px;background:#fff;cursor:pointer;flex:none}
+.thumbs img:hover{border-color:var(--blue)}
+.info .b{font-size:13px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.info h1{font-size:clamp(24px,3vw,32px);line-height:1.15;margin:4px 0 12px}
+.info .price{font-size:34px;margin:0 8px 0 0;display:inline-block}
+.info .buy{max-width:320px;margin-top:16px;font-size:18px;padding:13px 0}
+.perks{list-style:none;padding:0;margin:18px 0;color:var(--muted);font-size:14px;line-height:1.9}
+.info h3{margin:22px 0 6px}
+.feats{padding-left:20px;margin:0;line-height:1.6}.feats li{margin-bottom:6px}
+@media(max-width:800px){.pd{grid-template-columns:1fr;gap:20px}}
 footer{margin-top:auto;background:var(--ink);color:#b9bfd6;padding-block:44px 28px;font-size:14px}
 footer .wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
 footer b{color:#fff;font:600 17px Fredoka,sans-serif;display:block;margin-bottom:8px}

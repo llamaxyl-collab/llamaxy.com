@@ -6,6 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 export PATH=~/.local/bin:$PATH
 [[ "$1" == "--no-fetch" || ! -d ~/scripts/urun_arastirici ]] || python3 tools/fetch_products.py
+python3 tools/fetch_details.py > /dev/null || true  # urun sayfasi bilgisi, sadece yeni/eski urunler (5 Kas 2026)
 python3 tools/build.py
 git add -A
 git commit -qm "Update site $(date +%F)" || true
