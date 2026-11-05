@@ -465,7 +465,7 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <h2>Delivery &amp; returns</h2><p class="sub">Everything you need to know about your order.</p>
 <div class="cols">
 <div class="box"><h3>🚚 Delivery</h3><p>We deliver to UK addresses only. Orders are dispatched within 1–2 working days from our UK fulfilment centre and usually arrive 1–3 days later. Standard delivery is £3.99 and free on orders over £40. You'll get an email with tracking when your order ships.</p></div>
-<div class="box"><h3>↩️ Returns</h3><p>Changed your mind? You can return unopened items within 14 days of delivery for a full refund. Email <a href="mailto:{CO['email']}">{CO['email']}</a> with your order details and we'll send you the return address. Faulty or damaged items are always refunded or replaced.</p></div>
+<div class="box"><h3>↩️ Returns</h3><p>Changed your mind? You can return unopened items within 14 days of delivery for a full refund. Email <a href="mailto:{CO['email']}">{CO['email']}</a> with your order number first, then post the item to: <b>Llamaxy Returns, Unit 14, Coral Park, Henley Road, Cambridge, CB1 3EA, United Kingdom</b>. Return postage for a change of mind is paid by you; faulty, damaged or wrong items are always refunded or replaced and we pay the return postage.</p></div>
 <div class="box"><h3>🛒 Quantities</h3><p>To keep prices fair for everyone, you can buy up to 3 of each item. Need more for a school, club or shop? <a href="contact.html">Contact us</a>.</p></div>
 <div class="box"><h3>🔒 Payment</h3><p>Payments are handled by a secure card payment provider. We never see or store your card details. Prices include VAT.</p></div>
 </div></div></section>"""
@@ -478,6 +478,7 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <h3 style="margin-top:16px">Your order</h3><p>Our contract is made when we email your order confirmation. If an item sells out before your order is dispatched we will cancel that order, refund you in full straight away and let you know by email.</p>
 <h3 style="margin-top:16px">Delivery</h3><p>UK addresses only. Orders are dispatched within 1–2 working days and usually arrive 1–3 working days later. We email your tracking number when the parcel leaves our warehouse.</p>
 <h3 style="margin-top:16px">Cancelling and returns (14 days)</h3><p>Under the Consumer Contracts Regulations you can cancel your order for any reason within 14 days of receiving it. Email us within that time, then send the item back within a further 14 days; we refund the item price and the standard delivery cost within 14 days of getting it back. Items must be unused and complete. You pay the cost of returning an item unless it is faulty or not as described.</p>
+<h3 style="margin-top:16px">Return address</h3><p>Llamaxy Returns, Unit 14, Coral Park, Henley Road, Cambridge, CB1 3EA, United Kingdom. Please include your order number in the parcel.</p>
 <h3 style="margin-top:16px">Faulty items</h3><p>Your rights under the Consumer Rights Act 2015 are not affected. If an item is faulty, damaged or not as described, email us and we will refund or replace it, including return postage.</p>
 <h3 style="margin-top:16px">Toy safety</h3><p>All toys are genuine branded products carrying the UKCA or CE mark. Please read the age warnings on each pack.</p>
 </div></div></section>"""
