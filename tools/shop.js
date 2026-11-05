@@ -1,4 +1,4 @@
-// Sepet tarayicida (localStorage); odeme: Cloudflare Worker -> Stripe Checkout (onizlemede TEST), canli sitede Apo onayina kadar kapali (4 Kas 2026)
+// Sepet tarayicida (localStorage); odeme: Cloudflare Worker -> Stripe Checkout (onizlemede TEST, canli sitede gercek odeme: Apo 5 Kas 2026)
 const K='llx_basket',$=s=>document.querySelector(s);
 const get=()=>JSON.parse(localStorage.getItem(K)||'[]'),put=b=>{localStorage.setItem(K,JSON.stringify(b));badge()};
 const API='https://llamaxy-checkout.llxpay.workers.dev',MAX=3,MORE='Maximum 3 per item — contact us at info@llamaxy.com for larger quantities';
@@ -19,9 +19,8 @@ function checkout(){const f=$('#co');if(!f)return;const b=get();
   $('#osum').innerHTML=`<b>${b.reduce((n,x)=>n+x.q,0)} item(s)</b>`+sumHtml(b);
   f.onsubmit=e=>{e.preventDefault();const p=$('#pay');p.disabled=true;p.innerHTML='<span class="spin"></span>Connecting to secure payment…';$('#perr').innerHTML='';
     const fail=m=>{p.disabled=false;p.textContent='Try again';$('#perr').innerHTML='<div class="err"><b>Payment could not be started.</b><br>'+m+'</div>'};
-    // Live site: payments stay closed until Apo approves; the hidden preview pays with Stripe TEST cards (4 Nov 2026)
-    if(!window.LLX_TEST){setTimeout(()=>fail('Our payment service is temporarily unavailable. You have not been charged and your basket has been saved. Please try again later.'),2600);return}
-    fetch(API,{method:'POST',body:JSON.stringify({test:1,base:location.href.replace(/[^/]*$/,''),items:b.map(x=>({a:x.a,q:x.q}))})})
+    // Live payments open (Apo 5 Nov 2026 "ödeme kısmını da yapalım"); the hidden preview still pays with Stripe TEST cards
+    fetch(API,{method:'POST',body:JSON.stringify({test:window.LLX_TEST?1:0,base:location.href.replace(/[^/]*$/,''),items:b.map(x=>({a:x.a,q:x.q}))})})
       .then(r=>r.json()).then(j=>j.url?location.href=j.url:fail(j.error)).catch(()=>fail('Please check your connection and try again. You have not been charged.'))}}
 if($('#thanks'))localStorage.removeItem(K);
 badge();cart();checkout();

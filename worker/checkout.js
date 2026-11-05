@@ -1,6 +1,6 @@
 // llamaxy.com checkout (Apo 4 Nov 2026): basket → Stripe Checkout session. Prices and stock come from
 // llamaxy.com/prices.json (built hourly from our FBA stock), never from the browser; max 3 per product.
-// Secrets: STRIPE_TEST, STRIPE_LIVE. Live payments only when var LIVE = "1" (until Apo approves: test only).
+// Secrets: STRIPE_TEST, STRIPE_LIVE. Live payments when var LIVE = "1" (on since Apo 5 Nov 2026).
 const SITE = 'https://llamaxy.com/'
 const H = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Content-Type': 'application/json' }
 const out = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: H })

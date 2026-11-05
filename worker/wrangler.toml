@@ -4,4 +4,4 @@ compatibility_date = "2026-11-01"
 workers_dev = true
 
 [vars]
-LIVE = "0"
+LIVE = "1"
