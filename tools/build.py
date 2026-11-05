@@ -458,8 +458,13 @@ window.addEventListener('hashchange',()=>{{const h=new URLSearchParams(location.
 <h2>Checkout</h2>{nostock}
 <div class="box"><form class="co" id="co">
 <div class="w" style="grid-column:1/-1"><div id="osum"></div></div>
-<label class="w">Your email (for order and delivery updates)<input id="em" type="email" required autocomplete="email" placeholder="you@example.com"></label>
-<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">You will enter your delivery address and pay on the next, secure payment page (Stripe). Up to 3 of each item per customer. By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
+<label class="w">Email (for order and delivery updates)<input id="em" type="email" required autocomplete="email" placeholder="you@example.com"></label>
+<label class="w">Full name<input id="an" required autocomplete="name"></label>
+<label class="w">Address line 1<input id="a1" required autocomplete="address-line1"></label>
+<label class="w">Address line 2 (optional)<input id="a2" autocomplete="address-line2"></label>
+<label>Town / city<input id="ac" required autocomplete="address-level2"></label>
+<label>Postcode<input id="ap" required autocomplete="postal-code" style="text-transform:uppercase"></label>
+<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">UK delivery only. You will pay on the next, secure payment page (Stripe). Up to 3 of each item per customer. By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
 <button class="btn" style="grid-column:1/-1;border:0;font:inherit;font-weight:600;cursor:pointer" id="pay">Continue to secure payment</button>
 </form><div id="perr"></div></div></div></section>"""
     (SITE / "checkout.html").write_text(page(f"Checkout — {CO['name']}", "checkout.html", checkout, "Checkout."))

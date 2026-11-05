@@ -14,8 +14,13 @@
 <h2>Checkout</h2><p class="sub">Maximum 3 of each item per customer — for larger quantities please <a href="contact.html">contact us</a>. Delivery to UK addresses only. Standard delivery £3.99, free on orders over £40. Dispatched within 1–2 working days from our UK fulfilment centre.</p>
 <div class="box"><form class="co" id="co">
 <div class="w" style="grid-column:1/-1"><div id="osum"></div></div>
-<label class="w">Your email (for order and delivery updates)<input id="em" type="email" required autocomplete="email" placeholder="you@example.com"></label>
-<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">You will enter your delivery address and pay on the next, secure payment page (Stripe). Up to 3 of each item per customer. By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
+<label class="w">Email (for order and delivery updates)<input id="em" type="email" required autocomplete="email" placeholder="you@example.com"></label>
+<label class="w">Full name<input id="an" required autocomplete="name"></label>
+<label class="w">Address line 1<input id="a1" required autocomplete="address-line1"></label>
+<label class="w">Address line 2 (optional)<input id="a2" autocomplete="address-line2"></label>
+<label>Town / city<input id="ac" required autocomplete="address-level2"></label>
+<label>Postcode<input id="ap" required autocomplete="postal-code" style="text-transform:uppercase"></label>
+<p class="w" style="grid-column:1/-1;font-size:14px;color:var(--muted)">UK delivery only. You will pay on the next, secure payment page (Stripe). Up to 3 of each item per customer. By placing an order you agree to our <a href="terms.html">terms of sale</a>.</p>
 <button class="btn" style="grid-column:1/-1;border:0;font:inherit;font-weight:600;cursor:pointer" id="pay">Continue to secure payment</button>
 </form><div id="perr"></div></div></div></section>
 <footer><div class="wrap">
